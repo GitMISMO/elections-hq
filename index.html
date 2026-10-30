@@ -3223,6 +3223,12 @@ function voterActions(el,k,vs){
      its own); nothing sends until Jonna presses Send. The "Elections Outbox" flow then sends it from elections@mismo.org and logs it.
    ========================================================================== */
 const ELECTIONS_FROM = "elections@mismo.org";
+/* Higher Logic only takes an emailed post from a member, so posts to MISMO Connect go from Jonna's
+   own address (a member of every community); everything else goes from elections@mismo.org. */
+const CONNECT_FROM = ()=>{ const a=(typeof S!=="undefined"&&S.settings&&S.settings.automation)||{}; return {name:a.connectFromName||"Jonna Critchley", email:a.connectFrom||"jcritchley@mba.org"}; };
+const isConnect = o=>(o.to||[]).some(r=>/@connectedcommunity\.org$/i.test((r&&r.email)||""));
+const fromOf = o=>isConnect(o)? CONNECT_FROM().email : ELECTIONS_FROM;
+const fromLabel = o=>isConnect(o)? CONNECT_FROM().name+" <"+CONNECT_FROM().email+">, so MISMO Connect accepts the post" : ELECTIONS_FROM;
 const ATT_YEAR = c=>String((+((c||{}).year)||curYear())-1);   /* 2027 terms: attendance in 2026 */
 
 /* ---------- Meeting Trackers ---------- */
@@ -3444,7 +3450,7 @@ function draftsFor(c, r){
   if(key==="call"&&c.type==="aof" || key==="ballot"&&c.type==="aof" || key==="voteReminder"&&c.type==="aof"){
     groupsHere.forEach(g=>{ const extra=vals("voters").filter(v=>v.list==="extra" && norm(v.group||"")===norm(g)).map(v=>({name:v.name,email:v.email}));
       out.push(mk(slugify(g),{group:g, ballotLink:FORM_BASE+"ballot/?e="+c.id+"&g="+encodeURIComponent(g)},connectTo(g).concat(key==="ballot"?extra:[]))); }); }
-  if(key==="ballot"&&c.type==="domain"){ groupsHere.forEach(g=>{ const gp=groupByName(g,"domain"); const kids=gp? vals("groups").filter(x=>x.domain===gp.id && x.connectEmail) : [];
+  if(key==="ballot"&&c.type==="domain"){ groupsHere.forEach(g=>{ const gp=groupByName(g,"domain"); const kids=gp? vals("groups").filter(x=>x.domain===gp.id && x.connectEmail && x.active!==false) : [];
     out.push(mk(slugify(g),{group:g, ballotLink:FORM_BASE+"ballot/?e="+c.id+"&g="+encodeURIComponent(g)},kids.map(k=>({name:k.name+" on MISMO Connect", email:k.connectEmail})))); }); }
   if(key==="ballot"&&c.type==="goc" || key==="voteReminder"&&c.type==="goc"){
     const roll=voterRoll(c); const st=voteStatus(c); const voted=new Set(votesOf(c).filter(v=>(st[v.id]||{}).k!=="excluded").map(v=>norm((v.voter||{}).company)));
@@ -3518,7 +3524,7 @@ function renderOutbox(){
   const draftIds=by("draft").filter(o=>((o.to||[]).length||(o.merge||[]).length) && (o.sendAfter||"")<=T()).map(o=>o.id);
   el.innerHTML=phead("Running the Elections","Outbox","Every election email, drafted on schedule. A message goes out only when you press Send, or on its date if you've set that kind to send automatically. Either way it goes from "+ELECTIONS_FROM+".", yearPick("ob2-y")+'<button class="btn" type="button" id="ob2-run">Check for New Drafts</button>'+(draftIds.length&&CAN_SEND()?'<button class="btn pri" type="button" id="ob2-all">Send All Due ('+draftIds.length+')</button>':''))+
     (!CAN_SEND()?'<div class="banner">This copy can\'t send. Send from Elections HQ on resources.mismo.org, or open a message here to copy it.</div>':'')+
-    band("Sends from "+ELECTIONS_FROM+": when you press Send, or automatically where you've chosen", tile(by("draft").filter(o=>(o.sendAfter||"")<=T()).length,"Due to Send","ready and dated today or earlier",{hot:by("draft").some(o=>(o.sendAfter||"")<=T())})+tile(by("draft").length,"Ready for You","every draft waiting")+tile(by("send").length+by("scheduled").length,"Going Out",by("scheduled").length?plural(by("scheduled").length,"automatic one")+" on its date":"you pressed Send")+tile(by("sent").length,"Sent","this election year")+tile(by("address").length+by("failed").length,"Needs Attention","no address yet, or didn't send",{hot:(by("address").length+by("failed").length)>0}))+
+    band("Sends from "+ELECTIONS_FROM+" (posts to MISMO Connect go from "+CONNECT_FROM().name+"): when you press Send, or automatically where you've chosen", tile(by("draft").filter(o=>(o.sendAfter||"")<=T()).length,"Due to Send","ready and dated today or earlier",{hot:by("draft").some(o=>(o.sendAfter||"")<=T())})+tile(by("draft").length,"Ready for You","every draft waiting")+tile(by("send").length+by("scheduled").length,"Going Out",by("scheduled").length?plural(by("scheduled").length,"automatic one")+" on its date":"you pressed Send")+tile(by("sent").length,"Sent","this election year")+tile(by("address").length+by("failed").length,"Needs Attention","no address yet, or didn't send",{hot:(by("address").length+by("failed").length)>0}))+
     kanbanHtml("kb-out",[{k:"draft",label:"Ready for You",color:"var(--warn)",cards:by("draft").map(card),empty:"Nothing waiting for you"},{k:"send",label:"Going Out",color:"var(--c1)",cards:by("send").concat(by("scheduled")).map(card),empty:"Nothing going out"},{k:"sent",label:"Sent",color:"var(--good)",cards:by("sent").reverse().map(card),limit:15,empty:"Nothing sent yet"},{k:"address",label:"Needs Attention",color:"var(--bad)",cards:by("address").concat(by("failed")).map(card),empty:"Every message has an address"}])+
     '<div class="split2" style="margin-top:22px"><div class="card"><div class="ch"><h2>How Each Email Goes Out</h2><span class="note">wait for you to send it, send automatically on its date, or don\'t draft it</span></div><div class="cb flush"><div class="tw"><table class="t"><thead><tr><th>Message</th><th>Election</th><th>When</th><th>Goes To</th><th>How</th></tr></thead><tbody>'+
       RULES.map(r=>{ const m=ruleMode(r); return '<tr><td><b>'+esc(r[2])+'</b></td><td>'+esc(r[1]==="*"?"Every election":TYPES[r[1]].short)+'</td><td>'+esc(r[3]==="event"?"As it happens":mileLabel(r[1],r[3])||r[3])+'</td><td class="note">'+esc(r[5])+'</td><td style="white-space:nowrap">'+[["ask","I\'ll Send It"],["auto","Send Automatically"],["off","Don\'t Draft"]].map(([v,l])=>'<button type="button" class="fbtn" data-rmode="'+esc(RULE_KEY(r))+'|'+v+'" aria-pressed="'+(m===v)+'" style="padding:4px 8px;font-size:11.5px">'+l+'</button>').join(" ")+(r[3]!=="event"&&r[1]!=="*"?' <button type="button" class="btn sm" data-rnow="'+esc(RULE_KEY(r))+'" title="Draft it now so you can read it ahead of time">Draft Now</button>':'')+'</td></tr>'; }).join("")+'</tbody></table></div></div></div>'+
@@ -3552,7 +3558,7 @@ function openOut(id){
   const o=Object.assign({},S.outbox[id]); const st=outStatus(o); const sent=S.outsent[id]||{};
   const toTxt=(o.to||[]).map(r=>(r.name?r.name+" <"+r.email+">":r.email)).join("\n");
   openPane({eye:"Outbox · "+(o.ruleLabel||""), title:o.subject||"Message", data:{to:toTxt, subject:o.subject, body:o.body},
-    top:'<div class="kv" style="margin-bottom:12px"><dt>Status</dt><dd>'+chip(OSTAT,st)+(sent.at?' '+esc(fL(sent.at.slice(0,10))):'')+(sent.error?' · '+esc(sent.error):'')+'</dd><dt>From</dt><dd>'+esc(ELECTIONS_FROM)+'</dd><dt>Send On</dt><dd>'+esc(o.sendAfter?fL(o.sendAfter):"Whenever you're ready")+(st==="scheduled"?' (sends automatically, weekdays 9 to 5 Eastern)':' (it waits for you to press Send)')+'</dd>'+(o.note?'<dt>Note</dt><dd>'+esc(o.note)+'</dd>':'')+(o.merge?'<dt>Personal Links</dt><dd>'+plural(o.merge.length,"person","people")+(o.batch?" · group "+o.batch:"")+'; each gets their own ballot link</dd>':'')+'</div>',
+    top:'<div class="kv" style="margin-bottom:12px"><dt>Status</dt><dd>'+chip(OSTAT,st)+(sent.at?' '+esc(fL(sent.at.slice(0,10))):'')+(sent.error?' · '+esc(sent.error):'')+'</dd><dt>From</dt><dd>'+esc(fromLabel(o))+'</dd><dt>Send On</dt><dd>'+esc(o.sendAfter?fL(o.sendAfter):"Whenever you're ready")+(st==="scheduled"?' (sends automatically, weekdays 9 to 5 Eastern)':' (it waits for you to press Send)')+'</dd>'+(o.note?'<dt>Note</dt><dd>'+esc(o.note)+'</dd>':'')+(o.merge?'<dt>Personal Links</dt><dd>'+plural(o.merge.length,"person","people")+(o.batch?" · group "+o.batch:"")+'; each gets their own ballot link</dd>':'')+'</div>',
     extra:'<div class="fsec">What They Receive</div><div class="mailprev">'+(o.html||emailHtml(o)).replace(/^[\s\S]*<body[^>]*>/,"").replace(/<\/body>[\s\S]*$/,"")+'</div>',
     fields:o.merge?[{k:"subject",label:"Subject",wide:true},{k:"body",label:"Message",type:"textarea",rows:14}]:[{k:"to",label:"To (one per line)",type:"textarea",rows:3,hint:"Name <address> or just the address"},{k:"subject",label:"Subject",wide:true},{k:"body",label:"Message",type:"textarea",rows:14}],
     buttons: st==="sent"?[]:[(st==="send"||st==="scheduled"?{label:st==="scheduled"?"Hold for Me":"Stop Sending", run:async()=>{ if(S.outsent[id]){ toast("Already sent"); return; } await patch("outbox",id,{status:"draft", sendAt:"", sentBy:""}); closePane(true); toast("Stopped"); }}:{label:CAN_SEND()?"Send Now":"Send (on resources.mismo.org)", run:async v=>{ if(!CAN_SEND()){ toast("Send from Elections HQ on resources.mismo.org"); return; } if(!window.__sendSure||window.__sendSure!==id){ window.__sendSure=id; setTimeout(()=>{ window.__sendSure=null; },4000); toast("Press Send Now again to send it"); return; } window.__sendSure=null; await saveOut(o,v); await sendOut(id); closePane(true); }}),{label:"Copy Message", run:async v=>{ copyText((v.subject||"")+"\n\n"+(v.body||""),"Message"); }},{label:"Skip", run:async()=>{ await patch("outbox",id,{status:"skipped"}); closePane(true); }}],
@@ -3562,8 +3568,8 @@ async function saveOut(o,v){ const to=v.to!==undefined? String(v.to).split(/\n|;
   await putOut(o.id,Object.assign({},o,{to, subject:v.subject, body:v.body, edited:true})); }
 function openPeople(){
   const a=S.settings.automation||{}; const people=Object.assign({},a.people||{}); const names=[...new Set(["MISMO Community","Michael Briggs"].concat(facilitators()).concat(Object.keys(people)))];
-  openPane({eye:"Outbox", title:"Addresses", data:{}, fields:names.map((n,i)=>({k:"p"+i,label:n,type:"email",get:()=>people[n]||""})).concat([{k:"newName",label:"Add a Person: Name"},{k:"newEmail",label:"Their Address",type:"email"}]),
-    save:async v=>{ const p={}; names.forEach((n,i)=>{ if(v["p"+i]) p[n]=v["p"+i]; }); if(v.newName && v.newEmail) p[v.newName]=v.newEmail; await put("settings","automation",Object.assign({},a,{people:p})); }});
+  openPane({eye:"Outbox", title:"Addresses", data:{}, fields:names.map((n,i)=>({k:"p"+i,label:n,type:"email",get:()=>people[n]||""})).concat([{sec:"Posts to MISMO Connect"},{k:"cfn",label:"Posted As (Name)",get:()=>CONNECT_FROM().name},{k:"cfe",label:"Posted As (Email)",type:"email",get:()=>CONNECT_FROM().email,hint:"Must be a member of every community, or Higher Logic turns the post away"},{sec:"Add a Person"},{k:"newName",label:"Add a Person: Name"},{k:"newEmail",label:"Their Address",type:"email"}]),
+    save:async v=>{ const p={}; names.forEach((n,i)=>{ if(v["p"+i]) p[n]=v["p"+i]; }); if(v.newName && v.newEmail) p[v.newName]=v.newEmail; await put("settings","automation",Object.assign({},a,{people:p, connectFrom:v.cfe||"jcritchley@mba.org", connectFromName:v.cfn||"Jonna Critchley"})); }});
 }
 
 /* ---------- what happened (for watching it run) ---------- */
@@ -3666,9 +3672,9 @@ function emailHtml(o){
   h+='</table></td></tr></table></body></html>';
   return h;
 }
-async function putOut(id,data){ const d=Object.assign({},data); d.html=emailHtml(Object.assign({id},d)); return put("outbox",id,d); }
+async function putOut(id,data){ const d=Object.assign({},data); d.from=fromOf(d); d.fromName=isConnect(d)?CONNECT_FROM().name:"MISMO Elections"; d.html=emailHtml(Object.assign({id},d)); return put("outbox",id,d); }
 /* drafts made before the branded email existed get it now */
-async function brandOld(){ if(!LIVE||!CANWRITE||!LOADED.has("outbox")||!LOADED.has("cycles")) return; for(const o of vals("outbox")){ if(!o.html && ["draft","send","approved","scheduled"].includes(o.status)) await patch("outbox",o.id,{html:emailHtml(o)}); } }
+async function brandOld(){ if(!LIVE||!CANWRITE||!LOADED.has("outbox")||!LOADED.has("cycles")) return; for(const o of vals("outbox")){ if(["draft","send","approved","scheduled"].includes(o.status) && (!o.html || o.from!==fromOf(o))) await patch("outbox",o.id,{html:o.html||emailHtml(o), from:fromOf(o), fromName:isConnect(o)?CONNECT_FROM().name:"MISMO Elections"}); } }
 const _autopilot = autopilot;
 autopilot = async function(){ await _autopilot(); try{ await brandOld(); }catch(e){} };
 
