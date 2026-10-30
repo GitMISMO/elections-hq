@@ -1548,6 +1548,21 @@ tr.join td{background:color-mix(in srgb,var(--good-soft) 70%,transparent)}
 .infob svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;flex:0 0 auto}
 .bylaw-more{display:flex;flex-wrap:wrap;gap:6px}
 #pane .bylaw-row{margin:0 0 14px}
+/* appointed leads: a card per group with its people */
+.apgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.aprole{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--surface);display:flex;flex-direction:column;gap:6px;min-width:0}
+.apr-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.apr-h b{font-size:14px}
+.apchip{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;text-align:left;font:inherit;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:7px 9px;cursor:pointer;color:var(--ink)}
+.apchip:hover{border-color:var(--sky,#74bfeb)}
+.apchip b{font-size:13px}
+.apchip small{flex:1 1 100%;color:var(--ink-3);font-size:11.5px;order:3}
+.apchip.ratified{border-left:3px solid var(--good,#0f7b5c)}
+.apchip.proposed{border-left:3px solid var(--warn,#b26b00)}
+.apchip.declined{opacity:.6}
+.apacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.apadd{font:inherit;font-size:12px;font-weight:600;color:var(--ink-2);background:none;border:1px dashed var(--border-strong,#adc4d6);border-radius:8px;padding:6px 9px;cursor:pointer;text-align:left}
+.apadd:hover{border-color:var(--sky,#74bfeb);color:var(--ink)}
 
 </style>
 </head><body>
@@ -1722,7 +1737,7 @@ var EF = (function(){
   function radio(root,n){ var x=root.querySelector('[name="'+n+'"]:checked'); return x?x.value:""; }
   function fld(name,label,type,req,extra){ return '<div class="field"><label for="ef-'+name+'">'+e(label)+(req?'':' <span class="efn">(optional)</span>')+'</label><input id="ef-'+name+'" name="'+name+'" type="'+(type||"text")+'" autocomplete="'+(extra||"off")+'"'+(req?' required':'')+'></div>'; }
   var LONG={aof:"Area of Focus Co-Chairs", domain:"Business Domain Leadership", goc:"Governance Committee", board:"Board of Directors"};
-  var WHAT={aof:"Two Co-Chairs for each Area of Focus", domain:"Chair, Vice Chair and Care and Feeding Lead for each Business Domain", goc:"The five members who confirm MISMO's process was followed", board:"Recommend someone for MISMO's Board of Directors"};
+  var WHAT={aof:"Two Co-Chairs for each Area of Focus", domain:"A Chair and a Vice Chair for each Business Domain (a company may lead only one domain)", goc:"The five members who confirm MISMO's process was followed", board:"Recommend someone for MISMO's Board of Directors"};
   function fmt(s){ var m=String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})/); if(!m) return ""; var d=new Date(+m[1],+m[2]-1,+m[3]); return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d.getDay()]+", "+["January","February","March","April","May","June","July","August","September","October","November","December"][d.getMonth()]+" "+d.getDate(); }
 
   function nominate(el, cfg){
@@ -1869,8 +1884,9 @@ const MILES = {
     ["termStart","Terms Begin",""]
   ],
   domain: [
-    ["intro","Structure Announced","The new Business Domains and Areas of Focus are announced"],
-    ["nomOpen","Call for Nominations","Chair, Vice Chair and Care and Feeding Lead for each domain"],
+    ["intro","Structure Announced","The write-up on the new structure goes out first (reviewed by Perry and JK, then Amy and Brian)"],
+    ["remind","Facilitators Briefed","Facilitators tell their groups what's elected and what's appointed"],
+    ["nomOpen","Call for Nominations","A Chair and a Vice Chair for each domain"],
     ["nomClose","Nominations Close",""],
     ["confirm","Nominees Confirmed","Every nominee has said yes"],
     ["ballotOpen","Ballots Out","One week to vote"],
@@ -2005,7 +2021,7 @@ async function copyText(txt, label){
 }
 
 /* ================= the shared records ================= */
-const S = {cycles:{}, seats:{}, nominations:{}, nomsubs:{}, nomreviews:{}, votes:{}, voteflags:{}, tasks:{}, leaders:{}, groups:{}, voters:{}, comms:{}, slate:{}, onboard:{}, settings:{}, mt:{}, outbox:{}, outsent:{}, responses:{}, mailin:{}, mtpush:{}};
+const S = {cycles:{}, seats:{}, nominations:{}, nomsubs:{}, nomreviews:{}, votes:{}, voteflags:{}, tasks:{}, leaders:{}, groups:{}, voters:{}, comms:{}, slate:{}, onboard:{}, settings:{}, mt:{}, outbox:{}, outsent:{}, responses:{}, mailin:{}, mtpush:{}, appointments:{}};
 let DB=null, DL=null, LIVE=false, LOADED=new Set(), CANWRITE=true;
 function vals(c){ return Object.values(S[c]); }
 async function getClaude(){
@@ -3357,7 +3373,7 @@ function copMap(c){
           (isA? '<div class="slots two">'+slotHtml(gs[0])+'</div>' : '<div class="pos5" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+gs.map((s,i)=>'<span class="pcell '+cls[i]+'" title="'+esc(s.position+": "+seatState(s).label)+'"><b>'+esc(POS_AB[s.position]||s.position.slice(0,3))+'</b><span>'+liveNoms(s.id).length+'</span></span>').join("")+'</div>')+
           '<div class="gf"><span><b>'+nn+'</b> '+(nn===1?"nominee":"nominees")+'</span>'+(inc.length?'<span>Now: '+esc(inc.map(x=>x.name+(attText(x.name,g,c.type)?" ("+attText(x.name,g,c.type).replace(" meetings","")+")":"")).join(", "))+'</span>':'')+'</div></button>'; }).join("")+'</div>'; }).join("");
   }
-  return h+'<div class="toolbar" style="margin-top:12px">'+STATE_LEGEND+'<span class="sp"></span><span class="note">'+(isA?"Each Area of Focus elects two Co-Chairs. Attendance in brackets is meetings attended of meetings held in "+ATT_YEAR(c)+", from Meeting Trackers.":"CH Chair · VC Vice Chair · CF Care and Feeding Lead. The number is how many people are nominated.")+'</span></div>';
+  return h+'<div class="toolbar" style="margin-top:12px">'+STATE_LEGEND+'<span class="sp"></span><span class="note">'+(isA?"Each Area of Focus elects two Co-Chairs. Attendance in brackets is meetings attended of meetings held in "+ATT_YEAR(c)+", from Meeting Trackers.":"CH Chair · VC Vice Chair. The number is how many people are nominated. A company may lead only one domain.")+'</span></div>';
 }
 function openCop(c,g){
   const gs=seatsOf(c).filter(s=>s.group===g).sort((a,b)=>POSITIONS.indexOf(a.position)-POSITIONS.indexOf(b.position)); const gp=groupByName(g,c.type);
@@ -4031,6 +4047,164 @@ renderForms = function(){ _renderFormsF(); const el=$("#page-forms"); if(!el) re
     '<div class="chk"><span class="ct"><b>Elections Send Email</b><small>'+(f.send?'Set. The Outbox sends through it, from '+esc(f.mailbox)+' or your own mailbox.':'Not set yet. Nothing in the Outbox can go out until it is.')+'</small></span></div></div>';
   el.appendChild(card); $("#fm-flows",card).onclick=()=>openFlows(); };
 
+/* ======================= ELECTED VERSUS APPOINTED (decided October 30, 2026) =======================
+   From Perry, JK and Jonna's review of the group reconfiguration:
+   - Only the Business Domains (a Chair and a Vice Chair) and the Board slate are elected.
+   - Area of Focus and Task Force leads are appointed: named by the domain chairs and ratified by the
+     group. A Lead and any Co-Leads; no limit, and anyone in a domain can lead them.
+   - Each domain's Care and Feeding Lead and its Architecture and Information Management reps are named
+     by the chairs and ratified by the group.
+   - The Governance Committee is appointed by MISMO staff: the leads of Business Glossary, Business
+     Process Model, Information Management and Architecture, plus two at-large members.
+   - A company may lead only one Business Domain (it may still lead Areas of Focus and Task Forces).
+   - Domain voting: MISMO member companies taking part in the domain, one company, one vote.
+   Appointments live in their own collection and go on the roster when applied, like election results. */
+DOMAIN_SEATS.splice(2);
+TYPES.domain.desc="Each Business Domain elects a Chair and a Vice Chair: one vote per MISMO member company taking part in the domain, and a company may lead only one domain. The chairs then name the domain's Care and Feeding Lead and its Architecture and Information Management reps, and the group ratifies them.";
+TYPES.aof.desc="Appointed, not elected. The domain chairs name each Area of Focus and Task Force lead, and any co-leads, and the group ratifies them. There's no limit on co-leads, and anyone in a domain can lead one.";
+TYPES.goc.desc="Appointed by MISMO staff, not elected. From 2027 it replaces the Residential and Commercial Standards Governance Committees: the leads of Business Glossary, Business Process Model, Information Management and Architecture, plus two at-large members.";
+const APPT_ROLES = {
+  aof:["Lead","Co-Lead"], tf:["Lead","Co-Lead"],
+  domain:["Care and Feeding Lead","Architecture Rep","Information Management Rep"],
+  goc:["Business Glossary Lead","Business Process Model Lead","Information Management Lead","Architecture Lead","At-Large Member"]
+};
+const APPT_BY = {aof:"The domain chairs", tf:"The domain chairs", domain:"The domain chairs", goc:"MISMO staff"};
+const ASTAT = {proposed:["Proposed","review"], ratified:["Ratified","ok"], declined:["Declined","changes"]};
+const isAppointed = c=>!!c && c.mode==="appointed";
+const apptsOf = (kind,y)=>vals("appointments").filter(a=>a.kind===kind && +a.year===+y).sort((a,b)=>byName(a.group,b.group)||(APPT_ROLES[kind]||[]).indexOf(a.role)-(APPT_ROLES[kind]||[]).indexOf(b.role));
+const domainName = g=>{ const d=g&&S.groups[g.domain]; return d? d.name : "No domain yet"; };
+function nowLeaders(gname){ return vals("leaders").filter(l=>l.status!=="former" && l.group===gname && !(l.termStart && l.termStart>=curYear()+"-01-01")); }
+function apptChip(a){ return '<button type="button" class="apchip '+(a.status||"proposed")+'" data-appt="'+esc(a.id)+'" title="'+esc((ASTAT[a.status||"proposed"]||[""])[0])+'"><b>'+esc(a.name||"Open")+'</b><small>'+esc(a.role)+(a.company?" · "+esc(a.company):"")+'</small>'+chip(ASTAT,a.status||"proposed")+'</button>'; }
+function openAppt(id, preset){
+  const a=id?Object.assign({},S.appointments[id]):Object.assign({status:"proposed", year:curYear()},preset||{}); const nid=id||uid("ap");
+  const kind=a.kind||"aof"; const gs=kind==="goc"? ["Governance Committee"] : groupsOf(kind).map(g=>g.name);
+  openPane({eye:(kind==="tf"?"Task Forces":TYPES[kind]?TYPES[kind].name:"Appointment")+" · "+a.year, title:id?(a.name||"Appointment"):"Name a "+(a.role||"Lead"), data:a,
+    top:'<p class="note" style="margin:0 0 12px">'+esc(APPT_BY[kind]||"")+' name this person'+(kind==="goc"?"":"; the group ratifies them")+'. No election.</p>',
+    fields:[{k:"group",label:kind==="goc"?"Committee":"Group",type:"select",opts:gs},{k:"role",label:"Role",type:"select",opts:APPT_ROLES[kind]||["Lead"]},
+      {k:"name",label:"Name"},{k:"company",label:"Company"},{k:"email",label:"Email"},
+      {k:"status",label:"Status",type:"select",opts:Object.entries(ASTAT).map(([k,v])=>[k,v[0]])},
+      {k:"ratifiedOn",label:kind==="goc"?"Confirmed On":"Ratified On",type:"date"},{k:"namedBy",label:"Named By",ph:APPT_BY[kind]||""},
+      {k:"notes",label:"Notes",type:"textarea",rows:3}],
+    save:async v=>{ if(!v.name) throw new Error("Add the name."); const x=Object.assign({},a,v,{kind, year:+a.year});
+      if(x.status==="ratified" && !x.ratifiedOn) x.ratifiedOn=T(); await put("appointments",nid,x); },
+    del:id?async()=>remove("appointments",id):null });
+}
+/* today's chairs and co-chairs carry forward as proposed leads (no grandfathering of elections: titles change to Lead) */
+async function carryForward(kind,gname){ const y=curYear(); const cur=nowLeaders(gname).filter(l=>/chair|lead/i.test(l.position||""));
+  const ordered=cur.sort((a,b)=>(/^chair$/i.test(b.position)?1:0)-(/^chair$/i.test(a.position)?1:0)); let n=0;
+  for(const [i,l] of ordered.entries()){ if(apptsOf(kind,y).some(a=>a.group===gname && norm(a.name)===norm(l.name))) continue;
+    await put("appointments",uid("ap"),{kind, year:y, group:gname, role:i===0?"Lead":"Co-Lead", name:l.name, company:l.company||"", email:l.email||"", status:"proposed", namedBy:"", notes:"Carried forward from "+(l.position||"leader")}); n++; }
+  toast(n?plural(n,"current leader")+" proposed as "+y+" leads":"Nothing to carry forward"); }
+/* ratified appointments go on the roster, like election results */
+async function applyAppts(kind){ const y=curYear(); const list=apptsOf(kind,y).filter(a=>a.status==="ratified" && !a.applied); let n=0;
+  const gtype=kind==="goc"?"gov":kind; const groups=new Set(list.map(a=>a.group));
+  for(const a of list){ const lid="l-appt-"+a.id;
+    await put("leaders",lid,{gtype, group:a.group, position:a.role, name:a.name, company:a.company||"", email:a.email||"", termStart:y+"-01-01", termEnd:y+"-12-31", status:"active", source:"Appointed "+(a.ratifiedOn||""), appointment:a.id});
+    await patch("appointments",a.id,{applied:true, leader:lid}); n++;
+    const oid="appt__"+a.id; if(!S.onboard[oid]) await put("onboard",oid,{cycle:y+"-"+kind, leader:lid, name:a.name, company:a.company||"", email:a.email||"", group:a.group, position:a.role, checks:{}}); }
+  /* this year's earlier leaders of those groups (or of those roles, for a domain) roll off */
+  for(const g of groups){ for(const l of vals("leaders").filter(l=>l.status!=="former" && l.group===g && !l.appointment && !(l.termStart>=y+"-01-01"))){
+    if(kind==="domain" && !APPT_ROLES.domain.some(r=>posMatch(l.position,r))) continue;
+    await put("leaders",l.id,Object.assign({},l,{status:"former", termEnd:(y-1)+"-12-31"})); } }
+  toast(n?plural(n,"appointment")+" on the roster":"Nothing ratified to apply yet",4000); }
+
+/* the Areas of Focus page (with Task Forces) and the Governance Committee page, when appointed */
+function renderAppointed(type){
+  const el=$("#page-"+type); const c=cyc(type); const y=curYear(); const T_=TYPES[type];
+  const kind = type==="aof" ? (SUB.aofKind||"aof") : type;
+  const list=apptsOf(kind,y); const rat=list.filter(a=>a.status==="ratified").length, prop=list.filter(a=>a.status==="proposed").length;
+  let body="";
+  if(type==="goc"){
+    const roles=APPT_ROLES.goc; const g="Governance Committee";
+    body='<div class="card"><div class="ch"><h2>'+y+' Governance Committee</h2><span class="note">appointed by MISMO staff · up to six for now</span></div><div class="cb"><div class="apgrid">'+
+      roles.map(r=>{ const xs=list.filter(a=>a.role===r); const want=r==="At-Large Member"?2:1;
+        return '<div class="aprole"><div class="apr-h"><b>'+esc(r)+'</b>'+(r!=="At-Large Member"?'<span class="note">'+esc(r.replace(/ Lead$/,""))+' review</span>':'<span class="note">'+want+' seats</span>')+'</div>'+xs.map(apptChip).join("")+(xs.length<want?'<button type="button" class="apadd" data-apnew="'+esc(r)+'">+ Appoint</button>':'')+'</div>'; }).join("")+'</div></div></div>';
+  } else {
+    const gs=groupsOf(kind).filter(g=>groupLive(g)); const doms={}; gs.forEach(g=>{ const d=domainName(g); (doms[d]=doms[d]||[]).push(g); });
+    body='<div class="subtabs" style="margin-bottom:14px">'+[["aof","Areas of Focus"],["tf","Task Forces"]].map(([k,l])=>'<button type="button" aria-pressed="'+(kind===k)+'" data-apkind="'+k+'">'+l+'</button>').join("")+'</div>'+
+      Object.keys(doms).sort(byName).map(d=>'<div class="card" style="margin-bottom:16px"><div class="ch"><h2>'+esc(d)+'</h2><span class="note">named by the '+esc(d)+' chairs, ratified by the group</span></div><div class="cb"><div class="apgrid">'+
+        doms[d].map(g=>{ const xs=list.filter(a=>a.group===g.name); const now=nowLeaders(g.name);
+          return '<div class="aprole"><div class="apr-h"><b>'+esc(g.name)+'</b>'+(g.facilitator?'<span class="note">'+esc(g.facilitator)+'</span>':'')+'</div>'+
+            (now.length?'<div class="note" style="margin:2px 0 8px">Now: '+esc(now.map(l=>l.name+" ("+l.position+")").join(", "))+'</div>':'<div class="note" style="margin:2px 0 8px">No leaders on the roster now</div>')+
+            xs.map(apptChip).join("")+'<div class="apacts"><button type="button" class="apadd" data-apgroup="'+esc(g.name)+'">+ Name a Lead</button>'+(!xs.length&&now.length?'<button type="button" class="apadd" data-apcarry="'+esc(g.name)+'">Propose Current Leaders</button>':'')+'</div></div>'; }).join("")+'</div></div></div>').join("");
+  }
+  const needs = type==="goc" ? Math.max(0,6-list.filter(a=>a.status!=="declined").length) : groupsOf(kind).filter(g=>groupLive(g) && !list.some(a=>a.group===g.name && a.status!=="declined")).length;
+  el.innerHTML=phead(y+" Leadership Year", T_.name, esc(T_.desc), yearPick(type+"-y")+'<button class="btn" type="button" id="ap-new">+ Appointment</button><button class="btn pri" type="button" id="ap-apply">Apply Ratified to the Roster</button>')+
+    '<div class="banner" style="background:var(--sky-wash,#e4f2fb);color:var(--ink);border-color:var(--sky,#74bfeb)"><b>No election.</b> '+(type==="goc"?"MISMO staff appoint the Governance Committee.":"Decided October 30: the domain chairs name these leads and the group ratifies them. Only Business Domain Chairs and Vice Chairs are elected.")+' Every leader is still tracked here, on the roster and on the website.</div>'+
+    band(type==="goc"?"Appointed by MISMO staff":"Named by the domain chairs, ratified by the group",
+      tile(list.filter(a=>a.status!=="declined").length,"Named",kind==="tf"?"Task Force leads":type==="goc"?"of up to six":"Area of Focus leads")+
+      tile(rat,type==="goc"?"Confirmed":"Ratified","ready for the roster")+tile(prop,"Proposed","waiting to be ratified",{hot:prop>0})+
+      tile(needs,type==="goc"?"Seats Open":"Groups With No Lead",type==="goc"?"the fifth needs to be technical":"not named yet",{hot:needs>0}))+body;
+  wireYear(el,type+"-y");
+  $$("[data-apkind]",el).forEach(b=>b.onclick=()=>{ SUB.aofKind=b.dataset.apkind; renderAppointed(type); });
+  $$("[data-appt]",el).forEach(b=>b.onclick=()=>openAppt(b.dataset.appt));
+  $$("[data-apgroup]",el).forEach(b=>b.onclick=()=>{ const has=list.some(a=>a.group===b.dataset.apgroup && a.role==="Lead" && a.status!=="declined"); openAppt(null,{kind, group:b.dataset.apgroup, role:has?"Co-Lead":"Lead"}); });
+  $$("[data-apcarry]",el).forEach(b=>b.onclick=()=>carryForward(kind,b.dataset.apcarry));
+  $$("[data-apnew]",el).forEach(b=>b.onclick=()=>openAppt(null,{kind:"goc", group:"Governance Committee", role:b.dataset.apnew}));
+  $("#ap-new",el).onclick=()=>openAppt(null,{kind, group:type==="goc"?"Governance Committee":"", role:(APPT_ROLES[kind]||["Lead"])[0]});
+  $("#ap-apply",el).onclick=async()=>{ const b=$("#ap-apply",el); if(b.dataset.sure){ await applyAppts(kind); } else { b.dataset.sure="1"; b.textContent="Press Again: Put the Ratified on the Roster"; setTimeout(()=>{ b.textContent="Apply Ratified to the Roster"; delete b.dataset.sure; },3500); } };
+}
+const _renderElectionA = renderElection;
+renderElection = function(type){
+  const c=cyc(type);
+  if((type==="aof"||type==="goc") && (isAppointed(c) || !c)) return renderAppointed(type);
+  _renderElectionA(type);
+  if(type==="domain" && c) domainExtras(c);
+};
+/* on the Business Domains page: one company, one domain; and who the chairs name */
+function domainExtras(c){ const el=$("#page-domain"); if(!el) return; const y=curYear();
+  /* a company leading (or nominated to lead) more than one domain */
+  const by={}; seatsOf(c).forEach(s=>{ const t=tally(c); const w=c.final? winnersOf(c,s,t).ids : onBallot(s.id).map(n=>n.id);
+    w.forEach(id=>{ const n=S.nominations[id]; if(!n||!n.company) return; const k=norm(n.company); (by[k]=by[k]||{co:n.company, doms:new Set()}).doms.add(s.group); }); });
+  const clash=Object.values(by).filter(x=>x.doms.size>1);
+  if(clash.length){ const b=document.createElement("div"); b.className="banner"; b.innerHTML='<b>One company, one domain.</b> '+clash.map(x=>esc(x.co)+' is '+(c.final?"elected":"on the ballot")+' in '+esc([...x.doms].join(" and "))).join("; ")+'. A company may lead only one Business Domain.'; const h=el.querySelector(".phead"); if(h) h.after(b); }
+  const list=apptsOf("domain",y); const doms=groupsOf("domain");
+  const card=document.createElement("div"); card.className="card"; card.style.marginTop="22px";
+  card.innerHTML='<div class="ch"><h2>Named by the Chairs</h2><span class="note">after the election: Care and Feeding Lead, Architecture rep and Information Management rep, ratified by the group</span><div class="r"><button class="btn sm" type="button" id="dm-apply">Apply Ratified to the Roster</button></div></div><div class="cb"><div class="apgrid">'+
+    doms.map(d=>{ const xs=list.filter(a=>a.group===d.name); return '<div class="aprole"><div class="apr-h"><b>'+esc(d.name)+'</b></div>'+xs.map(apptChip).join("")+
+      APPT_ROLES.domain.filter(r=>!xs.some(a=>a.role===r && a.status!=="declined")).map(r=>'<button type="button" class="apadd" data-dmnew="'+esc(d.name)+'|'+esc(r)+'">+ '+esc(r)+'</button>').join("")+'</div>'; }).join("")+'</div></div>';
+  el.appendChild(card);
+  $$("[data-appt]",card).forEach(b=>b.onclick=()=>openAppt(b.dataset.appt));
+  $$("[data-dmnew]",card).forEach(b=>b.onclick=()=>{ const [g,r]=b.dataset.dmnew.split("|"); openAppt(null,{kind:"domain", group:g, role:r}); });
+  $("#dm-apply",card).onclick=()=>applyAppts("domain");
+}
+/* starting a new year: Areas of Focus and the Governance Committee are set up as appointed, with no seats */
+const _buildCycleA = buildCycle;
+buildCycle = async function(type,y){
+  if(type==="aof"||type==="goc"){ const id=y+"-"+type; await put("cycles",id,{type, year:y, mode:"appointed", dates:{termStart:y+"-01-01"}, forms:{nominate:"closed", ballot:"closed"}, notes:"Appointed, not elected"}); return; }
+  return _buildCycleA(type,y);
+};
+/* the public nomination form only lists elections */
+const _nominateConfigA = nominateConfig;
+nominateConfig = function(){ return _nominateConfigA().filter(x=>{ const c=S.cycles[x.cycle]; return c && !isAppointed(c); }); };
+/* facilitators' brief for the Business Domain election: their own Areas of Focus and Task Forces */
+const _draftsForA = draftsFor;
+draftsFor = function(c,r){
+  if(c.type==="domain" && r[0]==="remind"){ const t=tplFor("domain","remind"); if(!t) return [];
+    const fac={}; ["aof","tf"].forEach(k=>groupsOf(k).filter(g=>groupLive(g)).forEach(g=>{ if(g.facilitator) (fac[g.facilitator]=fac[g.facilitator]||[]).push(g.name); }));
+    return Object.keys(fac).sort(byName).map(f=>({cycle:c.id, rule:RULE_KEY(r), ruleLabel:r[2], id:c.id+"__remind__"+slugify(f), note:"Their groups: "+fac[f].join(", "),
+      subject:mergeText(t.subject,c,{}), body:mergeText(t.body,c,{first:f.split(" ")[0], groups:fac[f].join(", "), nominateLink:FORM_BASE+"nominate/"}), to:emailOf(f)?[{name:f,email:emailOf(f)}]:[]})); }
+  if(c.type==="domain" && r[0]==="intro"){ const t=tplFor("domain","intro"); if(!t) return [];
+    const community=emailOf("MISMO Community")?[{name:"MISMO Community",email:emailOf("MISMO Community")}]:[];
+    return [{cycle:c.id, rule:RULE_KEY(r), ruleLabel:r[2], id:c.id+"__intro", subject:mergeText(t.subject,c,{}), body:mergeText(t.body,c,{nominateLink:FORM_BASE+"nominate/"}), to:community.concat(facilitators().filter(emailOf).map(f=>({name:f,email:emailOf(f)}))),
+      note:"The announcement: reviewed by Perry and JK, then Amy and Brian, before it goes"}]; }
+  if(isAppointed(c)) return [];
+  return _draftsForA(c,r);
+};
+RULES.push(["intro","domain","The New Structure (the Announcement)","intro","ask","MISMO Community and every facilitator; goes first, once Perry, JK, Amy and Brian have reviewed it"]);
+RULES.push(["remind","domain","Brief for Facilitators","remind","ask","Each facilitator, naming their Areas of Focus and Task Forces"]);
+COMMS.domain.unshift(
+  ["intro","The New Structure (the Announcement)","intro","MISMO Community and every facilitator","MISMO's new structure: Business Domains, Areas of Focus and Task Forces",
+"MISMO is changing how its work is organized, starting January 1, {{year}}.\n\nEight Business Domains now own MISMO's work. Each domain reviews and approves what's built in its area, and decides which Areas of Focus and Task Forces it needs.\n\n- Areas of Focus (formerly Communities of Practice) are standing spaces to collaborate and surface ideas.\n- Task Forces (formerly Development Workgroups) each build one product and wrap up when the work is done, as the domain decides.\n- Business Glossary and Business Process Model become MISMO tools, stewarded through the Governance Committee.\n\nWhat's elected: each Business Domain elects a Chair and a Vice Chair, with one vote per MISMO member company taking part in the domain. A company may lead only one domain. The Domain Chairs form the Council of Chairs.\n\nWhat's appointed: the domain chairs name each Area of Focus and Task Force lead, and any co-leads, plus the domain's Care and Feeding Lead and its Architecture and Information Management reps, and the group ratifies them. Anyone in a domain can help lead an Area of Focus or a Task Force. The Residential and Commercial Standards Governance Committees become one Governance Committee, appointed by MISMO.\n\nNominations for Business Domain Chairs and Vice Chairs are open {{nomOpen}} through {{nomClose}}: {{nominateLink}}\n\nBallots go out {{ballotOpen}}, and the new leaders are announced {{announce}}.\n\nThank you for being part of MISMO."],
+  ["remind","Brief for Facilitators","remind","Each facilitator","Business Domain elections: please tell your groups",
+"Hi {{first}},\n\nMISMO's new structure starts January 1, {{year}}. Business Domains elect a Chair and a Vice Chair; nominations are open {{nomOpen}} through {{nomClose}}: {{nominateLink}}\n\nArea of Focus and Task Force leads are no longer elected. The domain chairs name them and the group ratifies them, and today's chairs carry forward as proposed leads. Please let your groups ({{groups}}) know, and encourage people to nominate for their domain.\n\nThank you,\nMISMO"]);
+/* Areas of Focus and the Governance Committee no longer have election emails */
+const _ruleModeA = ruleMode;
+ruleMode = function(r){ if(r[1]==="aof"||r[1]==="goc") return "off"; return _ruleModeA(r); };
+/* the Bylaws note on leaders, with the October 30 decisions */
+BYLAWS.leaders.pts = BYLAWS.leaders.pts.concat(["Decided October 30, 2026: only Business Domain Chairs and Vice Chairs (and the Board slate) are elected. Area of Focus and Task Force leads, and each domain's Care and Feeding Lead and Architecture and Information Management reps, are named by the domain chairs and ratified by the group. The Governance Committee is appointed by MISMO staff."]);
+BYLAWS.prior.pts = BYLAWS.prior.pts.concat(["Proposed October 30, 2026: approving new initiatives moves to a small, staff-appointed committee (the domain chair joins when their item comes up, and it reports to the Prioritization Committee). To run by Brian and Amy; it may need a Bylaws change."]);
+
 /* ================= Start the next election year ================= */
 function openStartYear(){
   const ys=years(); const next=(vals("cycles").length? Math.max(...ys)+1 : today().getFullYear()+1);
@@ -4072,8 +4246,10 @@ async function buildCycle(type,y){
 /* ================= Help ================= */
 const HELP=[
   ["Getting Started","How Elections HQ is laid out",'<p>Each election has its own page: <b>Business Domains</b>, <b>Areas of Focus</b>, the <b>Governance Committee</b> and the <b>Board of Directors</b>. The pages under Running the Elections work across all of them: Nominations, Ballots and Results, the <b>Outbox</b>, Timeline and Tasks, Communications and Onboarding. Records holds the Structure, the Leadership Roster, Voter Lists and the Public Forms.</p><p>An election year is the year terms begin: the 2027 election year runs nominations and voting in the fall of 2026, and uses 2026 attendance from Meeting Trackers.</p><p>Pages with an <b>(i)</b> beside the title show what MISMO\'s Bylaws say about that election.</p>'],
-  ["Getting Started","The new structure",'<p>Communities of Practice become <b>Areas of Focus</b> (two elected Co-Chairs and a staff facilitator). Development Workgroups become <b>Task Forces</b> (a Lead set by the domain, an optional Co-Lead, a Requestor Sponsor and a facilitator; not elected). Each sits in one of eight <b>Business Domains</b>, which elect a Chair, a Vice Chair and a Care and Feeding Lead. The Council of Chairs is now the Domain Chairs only, the Business Executive Team becomes the Board\'s Prioritization Committee, and from 2027 the Residential and Commercial Standards Governance Committees become one five-person <b>Governance Committee</b>, which confirms the process was followed.</p><p>Groups archived in Meeting Trackers or Higher Logic (Fee Modernization, for one) are marked inactive on the Structure page, so they get no seat, no ballot email and no post.</p>'],
-  ["Getting Started","Starting a new year",'<p>On the Election Year page, press <b>Start the Next Election Year</b>. Dates move forward a year onto the same weekday, tasks are copied with every box unticked, and seats are rebuilt: two Co-Chairs for every Area of Focus still meeting, and three seats for every Business Domain. After that, every date is yours to change.</p>'],
+  ["Getting Started","The new structure",'<p>Communities of Practice become <b>Areas of Focus</b> (standing spaces to collaborate) and Development Workgroups become <b>Task Forces</b> (each builds one product and wraps up when the domain decides the work is done). Each sits in one of eight <b>Business Domains</b>, which own the work: they review and approve it and decide which Areas of Focus and Task Forces they need. The Council of Chairs is the Domain Chairs. Business Glossary and Business Process Model become MISMO tools, stewarded through the Governance Committee, and with Information Management and Architecture they are led by Governance Committee members.</p><p>Groups archived in Meeting Trackers or Higher Logic (Fee Modernization, for one) are marked inactive on the Structure page.</p>'],
+  ["Getting Started","Starting a new year",'<p>On the Election Year page, press <b>Start the Next Election Year</b>. Business Domain dates move forward a year onto the same weekday, tasks are copied with every box unticked, and two seats (Chair and Vice Chair) are built for every Business Domain. Areas of Focus and the Governance Committee are set up as appointed, with no seats or ballots. After that, every date is yours to change.</p>'],
+  ["Getting Started","Elected or appointed",'<p>Decided October 30, 2026 (Perry, JK and Jonna):</p><ul><li><b>Elected:</b> each Business Domain\'s Chair and Vice Chair, one vote per MISMO member company taking part in the domain. A company may lead only one domain; Elections HQ flags it if a company is on the ballot or elected in two. And the Board slate, as always.</li><li><b>Named by the domain chairs, ratified by the group:</b> every Area of Focus and Task Force lead, and any co-leads (no limit, and anyone in a domain can lead one), plus each domain\'s Care and Feeding Lead and its Architecture and Information Management reps. Today\'s chairs carry forward as proposed leads; no one is grandfathered into an elected seat.</li><li><b>Appointed by MISMO staff:</b> the Governance Committee: the leads of Business Glossary, Business Process Model, Information Management and Architecture, plus two at-large members.</li></ul><p>The write-up announcing this goes out first (Perry and JK review it, then Amy and Brian), and the Business Domain nominations open after it.</p>'],
+  ["Getting Started","Naming leads (appointments)",'<p>The <b>Areas of Focus</b> page (with a Task Forces tab) and the <b>Governance Committee</b> page show each group\'s leaders now and the people named for next year. Press <b>+ Name a Lead</b>, or <b>Propose Current Leaders</b> to carry today\'s chairs forward as proposed leads. Open a person to mark them <b>Ratified</b> (or Declined). Each Business Domain\'s Care and Feeding Lead and reps are on the Business Domains page, under Named by the Chairs.</p><p>When they\'re ratified, press <b>Apply Ratified to the Roster</b>: they go on the Leadership Roster for the year, this year\'s leaders of those groups roll off, and everyone new appears on Onboarding. Every lead is still tracked, on the roster and on the website, even without an election.</p>'],
   ["Getting Started","Changing dates",'<p>Open <b>Dates and Forms</b> on any election, or click a date on its timeline, and move anything, as often as you need. As you type, anything out of order, on a weekend or MISMO holiday, or squeezing nominations or voting too short is flagged.</p><p>When you save, Elections HQ lists what the change touches, each with a tick box, and only what you tick moves: the later steps that would now be out of order, tasks due on the old date, Outbox drafts (their send date and the dates written in them), the same date for the Business Domains or Areas of Focus, and the nomination form\'s open and close dates. Terms Begin and Orientation never move on their own. Emails already sent with the old date are listed so you can send a correction.</p>'],
   ["How It\'s Connected","Where Elections HQ lives",'<p>Elections HQ runs at <b>resources.mismo.org/elections-hq/</b> with the shared resources.mismo.org sign-in. Who can open it and who can change things is set per person in <b>People &amp; Access</b> (Admin and Staff change anything; View is read-only).</p><ul><li>The page is in the public GitHub repository <b>GitMISMO/elections-hq</b>. It holds no records.</li><li>Every record is in the private repository <b>GitMISMO/elections-hq-data</b>, read and saved through the resources.mismo.org save relay (project <b>elections-hq</b>). Every save is a commit, so there is history.</li><li>What the public forms need (the open seats, and each ballot\'s confirmed nominees) is published to <b>elections-hq/slates/</b> through a second relay project, <b>elections-hq-public</b>, which can write nothing else.</li><li>Elections HQ is listed in <b>assets/tools.json</b> (Planning) and the relay\'s <b>_internal/projects.json</b> in GitMISMO.github.io.</li></ul><p>The copy in Claude is a backup; work in the resources.mismo.org one.</p>'],
   ["How It\'s Connected","Meeting Trackers",'<p>Meeting Trackers is the source of truth for which groups are active and for attendance. Elections HQ holds a snapshot of every group, the meetings held each year, and each leader\'s attendance, shown on the Leadership Roster and beside each person serving now. A small script in Meeting Trackers can keep it current every day (not switched on yet).</p><p><b>Elected leaders go back to Meeting Trackers.</b> When you apply the results for a Business Domain or Area of Focus, the new Chair, Vice Chair or Co-Chairs are written into Meeting Trackers\' Workgroup Leadership, marked "Elections HQ". Care and Feeding Leads stay in Elections HQ. Anything that couldn\'t be sent waits and can be sent again from the results panel. Whoever applies results needs Meeting Trackers access too.</p><p>Voting in Area of Focus and Domain elections is one vote per member company that took part that year.</p>'],
@@ -4084,7 +4260,7 @@ const HELP=[
   ["Automation","Nominee confirmations",'<p>When a nomination is accepted, the nominee gets an email with a personal link to say yes or no. Their answer is logged and the nominee moves to On the Ballot, or to Not Going Ahead, with nothing for you to do. Open a nominee and press <b>Nominee\'s Confirmation</b> to see what they see.</p>'],
   ["Nominations","How a nomination comes in",'<ol><li>Someone fills in the public nomination form.</li><li>It lands in From the Form on Nominations, flagged if it looks like spam or is already there.</li><li>Drag it to To Confirm (or press Accept). The nominee is emailed to confirm.</li><li>When they say yes, it moves to On the Ballot.</li></ol><p>Nominees must work for a MISMO member company (Bylaws, Article IV).</p>'],
   ["Voting","One company, one vote",'<p>When a company sends more than one ballot for the same group, those ballots are held. The one-company email goes to them; when they answer, press <b>Count This One</b> on the ballot that stands. For the Governance Committee, if both the MVR and the MVA vote, the Alternate\'s ballot is dismissed.</p><p>Ballots emailed to elections@mismo.org go in with <b>+ Ballot Sent by Email</b> on Ballots and Results.</p>'],
-  ["Results","Certifying the results with MBA Legal",'<p>Every year the Governance Committee results go to MBA Legal, as a third party, to confirm the election was fair.</p><ol><li>When the Call for Vote goes out, a <b>Heads-Up to MBA Legal</b> is drafted with the dates.</li><li>On the audit date, the <b>Request to Certify</b> is drafted from the count: the process with its dates, the ballots received, any company that voted twice and which ballot counted, any tie and how it was settled, and every seat\'s elected and not elected nominees. The ballot breakdown and the count are attached.</li><li>Press <b>Certification</b> on the results to see it, draft it again after settling ballots, and record when it comes back.</li></ol><p>Who certifies (Michael Briggs is leaving) is set in Outbox, Addresses; leave it blank until it\'s decided, and the drafts wait in Needs Attention. These come from your address.</p>'],
+  ["Results","Certifying the results with MBA Legal",'<p>MBA Legal, as a third party, confirms an election was fair. The Governance Committee is now appointed, so its certification emails are switched off; the same request can be drafted for any elected results from the <b>Certification</b> button on those results.</p><ol><li>When the Call for Vote goes out, a <b>Heads-Up to MBA Legal</b> is drafted with the dates.</li><li>On the audit date, the <b>Request to Certify</b> is drafted from the count: the process with its dates, the ballots received, any company that voted twice and which ballot counted, any tie and how it was settled, and every seat\'s elected and not elected nominees. The ballot breakdown and the count are attached.</li><li>Press <b>Certification</b> on the results to see it, draft it again after settling ballots, and record when it comes back.</li></ol><p>Who certifies (Michael Briggs is leaving) is set in Outbox, Addresses; leave it blank until it\'s decided, and the drafts wait in Needs Attention. These come from your address.</p>'],
   ["Results","Final results and the roster",'<ol><li>Settle every ballot on hold.</li><li>For the Governance Committee, send the Request to Certify and record it when it\'s back.</li><li>Press <b>Mark Results Final</b>. The elected and thank-you emails are drafted.</li><li>Press <b>Apply to the Roster</b>. New leaders are added, outgoing leaders move to Former, everyone new appears on Onboarding, Domain Chairs appear on the Council of Chairs, and the new leaders are written into Meeting Trackers.</li></ol>'],
   ["Board","How the Board slate works",'<p>Board members aren\'t voted on by members. The Nominating Committee recommends the slate and MBA\'s President and CEO elects the Board. The Board page keeps the slate: who\'s leaving, who\'s joining, extensions, committee roles (including the Prioritization Committee) and officers. The names go to MBA at least 30 days before year end (by December 1); Elections HQ flags it if that date is later.</p>']
 ].concat(Object.keys(BYLAWS).map(k=>["The Bylaws", BYLAWS[k].t, '<ul>'+BYLAWS[k].pts.map(p=>'<li>'+esc(p)+'</li>').join("")+'</ul><p class="note">'+esc(BYLAWS[k].cite)+'. Bylaws of the Mortgage Industry Standards Maintenance Organization, Inc., as amended January 20, 2022. A plain-words summary; the Bylaws themselves govern.</p>']));
