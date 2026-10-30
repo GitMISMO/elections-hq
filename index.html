@@ -1533,6 +1533,14 @@ tr.join td{background:color-mix(in srgb,var(--good-soft) 70%,transparent)}
 @media (max-width:700px){.feed .fe{grid-template-columns:70px minmax(0,1fr)}.feed .fd{grid-column:2}}
 .mailprev{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#f1f6fa;color:#0d314c}
 .mailprev a{pointer-events:none}
+/* changing dates: live checks and what a change affects */
+.dt-ok{font-size:13px;color:var(--good,#0f7b5c);background:var(--good-soft,#e3f3ed);border-radius:6px;padding:8px 12px;margin-bottom:14px}
+.dt-warn{font-size:13px;color:var(--ink);background:var(--warn-soft,#fdf3e1);border:1px solid var(--warn,#b26b00);border-radius:6px;padding:10px 14px;margin-bottom:14px}
+.dt-warn .dt-h{display:block;color:var(--warn,#b26b00);margin-bottom:4px}
+.dt-warn ul,.imp{margin:4px 0 0;padding-left:18px}
+.dt-warn li,.imp li{margin:3px 0;font-size:13px;line-height:1.45}
+.dt-warn li.bad,.imp li.bad{color:var(--bad,#b3372c)}
+.imp{margin-bottom:10px}
 
 </style>
 </head><body>
@@ -1714,7 +1722,7 @@ var EF = (function(){
     var open=(cfg.elections||[]).filter(function(x){ return x.open; });
     var started=Date.now();
     var hero='<div class="ef-hero"><small>MISMO Elections</small><h2>Nominate a Leader</h2><p>Nominate yourself or a colleague. Every nomination is reviewed by MISMO staff, and we confirm with each nominee before anything appears on a ballot.</p></div>';
-    if(!open.length){ el.innerHTML='<div class="ef">'+hero+'<div class="closed"><b>Nominations are closed right now.</b><br>Questions? Write to info@mismo.org.</div></div>'; return; }
+    if(!open.length){ el.innerHTML='<div class="ef">'+hero+'<div class="closed"><b>Nominations are closed right now.</b><br>Questions? Write to elections@mismo.org.</div></div>'; return; }
     var pre=cfg.preset||open[0].cycle;
     el.innerHTML='<form class="ef" novalidate>'+hero+
       '<fieldset><legend>Which election?</legend><div class="opts">'+open.map(function(x){ return '<label class="opt'+(x.cycle===pre?" on":"")+'"><input type="radio" name="cycle" value="'+e(x.cycle)+'"'+(x.cycle===pre?" checked":"")+'><span><b>'+e(LONG[x.type]||x.name)+'</b><small>'+e(WHAT[x.type]||"")+(x.closes?' · nominations close '+e(fmt(x.closes)):'')+'</small></span></label>'; }).join("")+'</div></fieldset>'+
@@ -1764,17 +1772,17 @@ var EF = (function(){
         hp: !!val(f,"website") || (Date.now()-started)<4000};
       var b=f.querySelector("#ef-go"); b.disabled=true; b.textContent="Sending…";
       Promise.resolve(cfg.submit(rec)).then(function(){
-        el.innerHTML='<div class="ef">'+hero+'<div class="done"><b>Thank you. Your nomination is in.</b>MISMO staff will review it and confirm with '+(self?"you":e(rec.nominee.first))+' before the ballot goes out. Questions? Write to info@mismo.org.<div style="margin-top:12px"><button class="btn" type="button" id="ef-again">Nominate Someone Else</button></div></div></div>';
+        el.innerHTML='<div class="ef">'+hero+'<div class="done"><b>Thank you. Your nomination is in.</b>MISMO staff will review it and confirm with '+(self?"you":e(rec.nominee.first))+' before the ballot goes out. Questions? Write to elections@mismo.org.<div style="margin-top:12px"><button class="btn" type="button" id="ef-again">Nominate Someone Else</button></div></div></div>';
         el.querySelector("#ef-again").onclick=function(){ nominate(el,cfg); };
         if(cfg.onDone) cfg.onDone(rec);
-      },function(err){ b.disabled=false; b.textContent="Send the Nomination"; er.textContent="That didn't go through. Please try again, or email info@mismo.org."+(err&&err.message?" ("+err.message+")":""); });
+      },function(err){ b.disabled=false; b.textContent="Send the Nomination"; er.textContent="That didn't go through. Please try again, or email elections@mismo.org."+(err&&err.message?" ("+err.message+")":""); });
     });
   }
 
   function ballot(el, cfg){
     var sl=cfg.slate; var started=Date.now(); var GL=sl&&sl.type==="domain"?"Business Domain":"Area of Focus";
     var hero='<div class="ef-hero"><small>MISMO Elections · '+e(sl?sl.year:"")+'</small><h2>'+e(sl?sl.name:"Ballot")+'</h2><p>One ballot per company'+(sl&&sl.type==="aof"?' in each Area of Focus':sl&&sl.type==="domain"?' in each Business Domain':'')+'. '+(sl&&sl.closes?'Voting closes '+e(fmt(sl.closes))+'.':'')+'</p></div>';
-    if(!sl || cfg.closed){ el.innerHTML='<div class="ef">'+hero+'<div class="closed"><b>This ballot isn\'t open right now.</b><br>Questions? Write to info@mismo.org.</div></div>'; return; }
+    if(!sl || cfg.closed){ el.innerHTML='<div class="ef">'+hero+'<div class="closed"><b>This ballot isn\'t open right now.</b><br>Questions? Write to elections@mismo.org.</div></div>'; return; }
     var multi=sl.groups.length>1;
     el.innerHTML='<form class="ef" novalidate>'+hero+
       '<fieldset><legend>About you</legend><div class="fgrid">'+fld("first","First Name","text",true,"given-name")+fld("last","Last Name","text",true,"family-name")+fld("email","Work Email","email",true,"email")+fld("company","Company","text",true,"organization")+fld("title","Job Title","text",false,"organization-title")+'</div></fieldset>'+
@@ -1811,7 +1819,7 @@ var EF = (function(){
         el.innerHTML='<div class="ef">'+hero+'<div class="done"><b>Thank you. Your ballot is in.</b>Results will be announced '+(sl.announce?e(fmt(sl.announce)):"soon")+'.'+(multi?'<div style="margin-top:12px"><button class="btn" type="button" id="ef-again">Vote in Another '+GL+'</button></div>':'')+'</div></div>';
         var a=el.querySelector("#ef-again"); if(a) a.onclick=function(){ ballot(el,cfg); };
         if(cfg.onDone) cfg.onDone(rec);
-      },function(err){ b.disabled=false; b.textContent="Cast My Ballot"; er.textContent="That didn't go through. Please try again, or email info@mismo.org."+(err&&err.message?" ("+err.message+")":""); });
+      },function(err){ b.disabled=false; b.textContent="Cast My Ballot"; er.textContent="That didn't go through. Please try again, or email elections@mismo.org."+(err&&err.message?" ("+err.message+")":""); });
     });
   }
   return {nominate:nominate, ballot:ballot};
@@ -2848,7 +2856,7 @@ function renderElection(type){
   $("#el-dates",el).onclick=()=>openDates(c);
   $("#el-addseat",el).onclick=()=>openSeat(null,c);
   $("#el-addnom",el).onclick=()=>openNomination(null,{cycle:c.id});
-  $$("[data-mile]",el).forEach(b=>b.onclick=()=>openDates(c));
+  $$("[data-mile]",el).forEach(b=>b.onclick=()=>openDates(c,b.dataset.mile));
   $$("[data-tnew]",el).forEach(b=>b.onclick=()=>openTask(null,b.dataset.tnew));
   if(sub==="seats"){
     wireF(body,()=>renderElection(type));
@@ -3033,7 +3041,7 @@ function renderBoard(){
   $("#bd-dates",el).onclick=()=>openDates(c);
   $("#bd-addslate",el).onclick=()=>openSlate(null,c);
   $("#bd-addpros",el).onclick=()=>openProspect(null,c);
-  $$("[data-mile]",el).forEach(b=>b.onclick=()=>openDates(c));
+  $$("[data-mile]",el).forEach(b=>b.onclick=()=>openDates(c,b.dataset.mile));
 }
 
 /* ================= Nominations ================= */
@@ -3212,9 +3220,9 @@ function voterActions(el,k,vs){
    - Meeting Trackers is the source of truth for which groups are still meeting,
      and for how many meetings each leader attended.
    - The Outbox drafts every email on schedule; Jonna approves (or a rule sends on
-     its own); nothing sends until Jonna presses Send. The "Elections Outbox" flow then sends it from elections@mba.org and logs it.
+     its own); nothing sends until Jonna presses Send. The "Elections Outbox" flow then sends it from elections@mismo.org and logs it.
    ========================================================================== */
-const ELECTIONS_FROM = "elections@mba.org";
+const ELECTIONS_FROM = "elections@mismo.org";
 const ATT_YEAR = c=>String((+((c||{}).year)||curYear())-1);   /* 2027 terms: attendance in 2026 */
 
 /* ---------- Meeting Trackers ---------- */
@@ -3411,11 +3419,12 @@ const RULES = [
   ["notElected","*","Thank You for Running","event","ask","Each nominee not elected, once results are final"]
 ];
 const RULE_KEY = r=>r[1]+"."+r[0];
-/* nothing ever sends on its own: a message is drafted (or not), and goes only when Send is pressed */
-function ruleMode(r){ const a=((S.settings.automation||{}).rules||{})[RULE_KEY(r)]; const m=a||r[4]; return m==="off"?"off":"ask"; }
+/* Every message type starts as "Draft It": it waits for Jonna to press Send. She can switch a type to
+   "Send Automatically" (it goes on its date, weekdays 9 to 5 Eastern, unless she pulls it back) or "Don't Draft". */
+function ruleMode(r){ const a=((S.settings.automation||{}).rules||{})[RULE_KEY(r)]; const m=a||r[4]; return ["ask","auto","off"].includes(m)?m:"ask"; }
 const SENDING = o=>o.status==="send"||o.status==="approved";
-const OSTAT={draft:["Ready for You","review"], send:["Sending Now","in"], approved:["Sending Now","in"], sent:["Sent","ok"], failed:["Didn't Send","changes"], skipped:["Skipped","wait"], address:["Needs an Address","changes"]};
-function outStatus(o){ const s=S.outsent[o.id]; if(s && s.status) return s.status==="sent"?"sent":"failed"; if(SENDING(o) && !(o.to||[]).length && !(o.merge||[]).length) return "address"; if(o.status==="draft" && !(o.to||[]).length && !(o.merge||[]).length) return "address"; return SENDING(o)?"send":(o.status||"draft"); }
+const OSTAT={draft:["Ready for You","review"], send:["Sending Now","in"], approved:["Sending Now","in"], scheduled:["Sends Automatically","in"], sent:["Sent","ok"], failed:["Didn't Send","changes"], skipped:["Skipped","wait"], address:["Needs an Address","changes"]};
+function outStatus(o){ const s=S.outsent[o.id]; if(s && s.status) return s.status==="sent"?"sent":"failed"; if((SENDING(o)||o.status==="scheduled") && !(o.to||[]).length && !(o.merge||[]).length) return "address"; if(o.status==="draft" && !(o.to||[]).length && !(o.merge||[]).length) return "address"; return SENDING(o)?"send":(o.status||"draft"); }
 function emailOf(name){ const d=((S.settings.automation||{}).people)||{}; return d[name]||""; }
 function tplFor(type,key){ const t=(COMMS[type]||COMMS.aof||[]).find(x=>x[0]===key) || (COMMS.aof||[]).find(x=>x[0]===key); if(!t) return null; const o=S.comms[type+"__"+key]||{}; return {subject:o.subject||t[4], body:o.body||t[5]}; }
 function connectTo(gname){ const g=groupByName(gname); return g&&g.connectEmail? [{name:gname+" on MISMO Connect", email:g.connectEmail}] : []; }
@@ -3484,15 +3493,15 @@ async function autopilot(){
     for(const c of TYPE_KEYS.map(k=>cyc(k)).filter(c=>c && c.type!=="board")){
       for(const r of RULES.filter(r=>(r[1]===c.type) && r[3]!=="event")){
         const d=cdate(c,r[3]); if(!d || ruleMode(r)==="off") continue; if(t<add(d,-1) || t>add(d,21)) continue;
-        for(const o of draftsFor(c,r)) if(!S.outbox[o.id]) await putOut(o.id,Object.assign(o,{status:"draft", createdAt:new Date().toISOString(), sendAfter:d, auto:true}));
+        for(const o of draftsFor(c,r)) if(!S.outbox[o.id]) await putOut(o.id,Object.assign(o,{status:ruleMode(r)==="auto"?"scheduled":"draft", createdAt:new Date().toISOString(), sendAfter:d, auto:true}));
       }
     }
     /* 3. drafts for things that happen (new nominee, duplicate ballots, results) */
     for(const o of eventDrafts()){ if(S.outbox[o.id]) continue;
       if(o.needsToken){ const n=S.nominations[o.nomination]; let tok=n.token; if(!tok){ tok=token(); await patch("nominations",n.id,{token:tok}); }
         o.body=mergeText(o.bodyTpl,S.cycles[o.cycle],Object.assign({},o.extra,{confirmLink:confirmLink(Object.assign({},n,{token:tok}))})); delete o.bodyTpl; delete o.extra; delete o.needsToken; }
-      delete o.mode;
-      await putOut(o.id,Object.assign(o,{status:"draft", createdAt:new Date().toISOString(), sendAfter:t, auto:true})); }
+      const mode=o.mode; delete o.mode;
+      await putOut(o.id,Object.assign(o,{status:mode==="auto"?"scheduled":"draft", createdAt:new Date().toISOString(), sendAfter:t, auto:true})); }
   }catch(e){ console.error(e); }
   PILOT_BUSY=false;
 }
@@ -3503,16 +3512,16 @@ function renderOutbox(){
   const items=vals("outbox").filter(o=>{ const c=S.cycles[o.cycle]; return c && +c.year===y; });
   const by=k=>items.filter(o=>outStatus(o)===k).sort((a,b)=>(a.sendAfter||"")<(b.sendAfter||"")?-1:1);
   const card=o=>{ const c=S.cycles[o.cycle]; const n=(o.merge||[]).length||(o.to||[]).length; const st=outStatus(o);
-    return '<div class="kcard'+(st==="address"||st==="failed"?" flag":"")+'" data-kid="'+esc(o.id)+'" data-ob2="'+esc(o.id)+'"'+(st==="draft"||st==="send"?' draggable="true"':'')+'><b>'+esc(o.subject||o.ruleLabel)+'</b><small>'+esc(o.ruleLabel||"")+'</small><div class="kt">'+(c?'<span class="chip k">'+esc(TYPES[c.type].short)+'</span>':'')+'<span class="note">'+(n?plural(n,"recipient"):"no address yet")+'</span>'+(o.sendAfter?'<span class="note">'+esc(fS(o.sendAfter))+'</span>':'')+(st==="draft"&&o.sendAfter&&o.sendAfter<=T()?'<span class="note" style="color:var(--warn);font-weight:600">due</span>':'')+'</div>'+
-      (st==="draft"?'<div class="kacts"><button class="btn sm pri" type="button" data-oapp="'+esc(o.id)+'">'+(CAN_SEND()?'Send':'Copy')+'</button><button class="btn sm" type="button" data-oskip="'+esc(o.id)+'">Skip</button></div>':'')+'</div>'; };
+    return '<div class="kcard'+(st==="address"||st==="failed"?" flag":"")+'" data-kid="'+esc(o.id)+'" data-ob2="'+esc(o.id)+'"'+(st==="draft"||st==="send"||st==="scheduled"?' draggable="true"':'')+'><b>'+esc(o.subject||o.ruleLabel)+'</b><small>'+esc(o.ruleLabel||"")+'</small><div class="kt">'+(c?'<span class="chip k">'+esc(TYPES[c.type].short)+'</span>':'')+'<span class="note">'+(n?plural(n,"recipient"):"no address yet")+'</span>'+(o.sendAfter?'<span class="note">'+esc(fS(o.sendAfter))+'</span>':'')+(st==="scheduled"?'<span class="note" style="font-weight:600">sends automatically</span>':'')+(st==="send"?'<span class="note" style="font-weight:600">sending now</span>':'')+(st==="draft"&&o.sendAfter&&o.sendAfter<=T()?'<span class="note" style="color:var(--warn);font-weight:600">due</span>':'')+'</div>'+
+      (st==="draft"?'<div class="kacts"><button class="btn sm pri" type="button" data-oapp="'+esc(o.id)+'">'+(CAN_SEND()?'Send':'Copy')+'</button><button class="btn sm" type="button" data-oskip="'+esc(o.id)+'">Skip</button></div>':'')+(st==="scheduled"?'<div class="kacts"><button class="btn sm" type="button" data-ohold="'+esc(o.id)+'">Hold for Me</button></div>':'')+'</div>'; };
   const sending=!!window.__hqRelay && !(window.__hqRelay.config||{}).PREVIEW;
   const draftIds=by("draft").filter(o=>((o.to||[]).length||(o.merge||[]).length) && (o.sendAfter||"")<=T()).map(o=>o.id);
-  el.innerHTML=phead("Running the Elections","Outbox","Every election email, drafted on schedule. Nothing goes out until you press Send; it then goes from "+ELECTIONS_FROM+" within a few minutes.", yearPick("ob2-y")+'<button class="btn" type="button" id="ob2-run">Check for New Drafts</button>'+(draftIds.length&&CAN_SEND()?'<button class="btn pri" type="button" id="ob2-all">Send All Due ('+draftIds.length+')</button>':''))+
+  el.innerHTML=phead("Running the Elections","Outbox","Every election email, drafted on schedule. A message goes out only when you press Send, or on its date if you've set that kind to send automatically. Either way it goes from "+ELECTIONS_FROM+".", yearPick("ob2-y")+'<button class="btn" type="button" id="ob2-run">Check for New Drafts</button>'+(draftIds.length&&CAN_SEND()?'<button class="btn pri" type="button" id="ob2-all">Send All Due ('+draftIds.length+')</button>':''))+
     (!CAN_SEND()?'<div class="banner">This copy can\'t send. Send from Elections HQ on resources.mismo.org, or open a message here to copy it.</div>':'')+
-    band("Sends from "+ELECTIONS_FROM+" only when you press Send", tile(by("draft").filter(o=>(o.sendAfter||"")<=T()).length,"Due to Send","ready and dated today or earlier",{hot:by("draft").some(o=>(o.sendAfter||"")<=T())})+tile(by("draft").length,"Ready for You","every draft waiting")+tile(by("send").length,"Sending Now","you pressed Send")+tile(by("sent").length,"Sent","this election year")+tile(by("address").length+by("failed").length,"Needs Attention","no address yet, or didn't send",{hot:(by("address").length+by("failed").length)>0}))+
-    kanbanHtml("kb-out",[{k:"draft",label:"Ready for You",color:"var(--warn)",cards:by("draft").map(card),empty:"Nothing waiting for you"},{k:"send",label:"Sending Now",color:"var(--c1)",cards:by("send").map(card),empty:"Nothing sending"},{k:"sent",label:"Sent",color:"var(--good)",cards:by("sent").reverse().map(card),limit:15,empty:"Nothing sent yet"},{k:"address",label:"Needs Attention",color:"var(--bad)",cards:by("address").concat(by("failed")).map(card),empty:"Every message has an address"}])+
-    '<div class="split2" style="margin-top:22px"><div class="card"><div class="ch"><h2>What Gets Drafted</h2><span class="note">drafted for you to send, or not drafted at all; nothing sends on its own</span></div><div class="cb flush"><div class="tw"><table class="t"><thead><tr><th>Message</th><th>Election</th><th>When</th><th>Goes To</th><th>How</th></tr></thead><tbody>'+
-      RULES.map(r=>{ const m=ruleMode(r); return '<tr><td><b>'+esc(r[2])+'</b></td><td>'+esc(r[1]==="*"?"Every election":TYPES[r[1]].short)+'</td><td>'+esc(r[3]==="event"?"As it happens":mileLabel(r[1],r[3])||r[3])+'</td><td class="note">'+esc(r[5])+'</td><td style="white-space:nowrap">'+[["ask","Draft It"],["off","Don\'t Draft"]].map(([v,l])=>'<button type="button" class="fbtn" data-rmode="'+esc(RULE_KEY(r))+'|'+v+'" aria-pressed="'+(m===v)+'" style="padding:4px 8px;font-size:11.5px">'+l+'</button>').join(" ")+(r[3]!=="event"&&r[1]!=="*"?' <button type="button" class="btn sm" data-rnow="'+esc(RULE_KEY(r))+'" title="Draft it now so you can read it ahead of time">Draft Now</button>':'')+'</td></tr>'; }).join("")+'</tbody></table></div></div></div>'+
+    band("Sends from "+ELECTIONS_FROM+": when you press Send, or automatically where you've chosen", tile(by("draft").filter(o=>(o.sendAfter||"")<=T()).length,"Due to Send","ready and dated today or earlier",{hot:by("draft").some(o=>(o.sendAfter||"")<=T())})+tile(by("draft").length,"Ready for You","every draft waiting")+tile(by("send").length+by("scheduled").length,"Going Out",by("scheduled").length?plural(by("scheduled").length,"automatic one")+" on its date":"you pressed Send")+tile(by("sent").length,"Sent","this election year")+tile(by("address").length+by("failed").length,"Needs Attention","no address yet, or didn't send",{hot:(by("address").length+by("failed").length)>0}))+
+    kanbanHtml("kb-out",[{k:"draft",label:"Ready for You",color:"var(--warn)",cards:by("draft").map(card),empty:"Nothing waiting for you"},{k:"send",label:"Going Out",color:"var(--c1)",cards:by("send").concat(by("scheduled")).map(card),empty:"Nothing going out"},{k:"sent",label:"Sent",color:"var(--good)",cards:by("sent").reverse().map(card),limit:15,empty:"Nothing sent yet"},{k:"address",label:"Needs Attention",color:"var(--bad)",cards:by("address").concat(by("failed")).map(card),empty:"Every message has an address"}])+
+    '<div class="split2" style="margin-top:22px"><div class="card"><div class="ch"><h2>How Each Email Goes Out</h2><span class="note">wait for you to send it, send automatically on its date, or don\'t draft it</span></div><div class="cb flush"><div class="tw"><table class="t"><thead><tr><th>Message</th><th>Election</th><th>When</th><th>Goes To</th><th>How</th></tr></thead><tbody>'+
+      RULES.map(r=>{ const m=ruleMode(r); return '<tr><td><b>'+esc(r[2])+'</b></td><td>'+esc(r[1]==="*"?"Every election":TYPES[r[1]].short)+'</td><td>'+esc(r[3]==="event"?"As it happens":mileLabel(r[1],r[3])||r[3])+'</td><td class="note">'+esc(r[5])+'</td><td style="white-space:nowrap">'+[["ask","I\'ll Send It"],["auto","Send Automatically"],["off","Don\'t Draft"]].map(([v,l])=>'<button type="button" class="fbtn" data-rmode="'+esc(RULE_KEY(r))+'|'+v+'" aria-pressed="'+(m===v)+'" style="padding:4px 8px;font-size:11.5px">'+l+'</button>').join(" ")+(r[3]!=="event"&&r[1]!=="*"?' <button type="button" class="btn sm" data-rnow="'+esc(RULE_KEY(r))+'" title="Draft it now so you can read it ahead of time">Draft Now</button>':'')+'</td></tr>'; }).join("")+'</tbody></table></div></div></div>'+
     '<div class="card"><div class="ch"><h2>Addresses the Outbox Uses</h2><div class="r"><button class="btn sm" type="button" id="ob2-people">Edit</button></div></div><div class="checks">'+
       ["MISMO Community"].concat(facilitators()).map(f=>'<div class="chk"><span class="ct"><b>'+esc(f)+'</b><small>'+esc(emailOf(f)||(f==="MISMO Community"?"The all-member community's post-by-email address, for announcements":"No address yet"))+'</small></span></div>').join("")+
       '<div class="chk"><span class="ct"><b>MISMO Connect post addresses</b><small>'+vals("groups").filter(g=>g.connectEmail).length+' of '+vals("groups").filter(g=>g.type==="aof"||g.type==="tf").length+' groups have one. Set them on the Structure page.</small></span><button class="btn sm" type="button" data-go="structure">Structure</button></div>'+
@@ -3522,15 +3531,16 @@ function renderOutbox(){
   $$("[data-oapp]",el).forEach(b=>b.onclick=async e=>{ e.stopPropagation(); const id=b.dataset.oapp;
     if(!CAN_SEND()){ const o=S.outbox[id]; copyText((o.subject||"")+"\n\n"+(o.body||""),"Message"); return; }
     if(b.dataset.sure){ await sendOut(id); } else { b.dataset.sure="1"; b.textContent="Press Again to Send"; setTimeout(()=>{ b.textContent="Send"; delete b.dataset.sure; },3500); } });
+  $$("[data-ohold]",el).forEach(b=>b.onclick=async e=>{ e.stopPropagation(); await patch("outbox",b.dataset.ohold,{status:"draft"}); toast("Held. It waits in Ready for You"); });
   $$("[data-oskip]",el).forEach(b=>b.onclick=async e=>{ e.stopPropagation(); await patch("outbox",b.dataset.oskip,{status:"skipped"}); toast("Skipped"); });
-  $$("[data-rmode]",el).forEach(b=>b.onclick=async()=>{ const [rk,v]=b.dataset.rmode.split("|"); const a=Object.assign({},S.settings.automation||{}); a.rules=Object.assign({},a.rules||{},{[rk]:v}); await put("settings","automation",a); toast(v==="off"?"Won't be drafted":"Will be drafted for you to send"); });
+  $$("[data-rmode]",el).forEach(b=>b.onclick=async()=>{ const [rk,v]=b.dataset.rmode.split("|"); const a=Object.assign({},S.settings.automation||{}); a.rules=Object.assign({},a.rules||{},{[rk]:v}); await put("settings","automation",a); toast(v==="off"?"Won't be drafted":v==="auto"?"Will send automatically on its date (weekdays 9 to 5 Eastern). Drafts already waiting stay with you":"Will wait for you to press Send"); });
   const all=$("#ob2-all",el); if(all) all.onclick=async()=>{ if(all.dataset.sure){ for(const id of draftIds) await sendOut(id,true); toast(plural(draftIds.length,"message")+" sending"); } else { all.dataset.sure="1"; all.textContent="Press Again to Send "+draftIds.length; setTimeout(()=>{ all.textContent="Send All Due ("+draftIds.length+")"; delete all.dataset.sure; },3500); } };
   $("#ob2-run",el).onclick=async()=>{ PILOT_AT=0; await autopilot(); toast("Checked: drafts are up to date"); };
   $("#ob2-people",el).onclick=()=>openPeople();
   $$("[data-rnow]",el).forEach(b=>b.onclick=async()=>{ const r=RULES.find(x=>RULE_KEY(x)===b.dataset.rnow); const c=cyc(r[1]); if(!c){ toast("Not set up this year"); return; } let n=0;
     for(const o of draftsFor(c,r)) if(!S.outbox[o.id]){ await putOut(o.id,Object.assign(o,{status:"draft", createdAt:new Date().toISOString(), sendAfter:cdate(c,r[3])||T(), auto:false})); n++; }
     toast(n?plural(n,"draft")+" ready to read":"Already drafted"); });
-  wireKanban(el,"kb-out",async(id,to)=>{ if(to==="send"){ if(CAN_SEND()) await sendOut(id); else toast("This copy can't send"); } else if(to==="draft"){ if(S.outsent[id]){ toast("Already sent"); return; } await patch("outbox",id,{status:"draft", sendAt:"", sentBy:""}); toast("Stopped. Back in Ready for You"); } });
+  wireKanban(el,"kb-out",async(id,to)=>{ if(to==="send" && S.outbox[id] && S.outbox[id].status==="scheduled") return; if(to==="send"){ if(CAN_SEND()) await sendOut(id); else toast("This copy can't send"); } else if(to==="draft"){ if(S.outsent[id]){ toast("Already sent"); return; } await patch("outbox",id,{status:"draft", sendAt:"", sentBy:""}); toast("Stopped. Back in Ready for You"); } });
 }
 function facilitators(){ return [...new Set(vals("groups").map(g=>g.facilitator).filter(Boolean))].sort(byName); }
 /* Send is the only way a message leaves: the Outbox flow sends status "send" within a few minutes */
@@ -3542,10 +3552,10 @@ function openOut(id){
   const o=Object.assign({},S.outbox[id]); const st=outStatus(o); const sent=S.outsent[id]||{};
   const toTxt=(o.to||[]).map(r=>(r.name?r.name+" <"+r.email+">":r.email)).join("\n");
   openPane({eye:"Outbox · "+(o.ruleLabel||""), title:o.subject||"Message", data:{to:toTxt, subject:o.subject, body:o.body},
-    top:'<div class="kv" style="margin-bottom:12px"><dt>Status</dt><dd>'+chip(OSTAT,st)+(sent.at?' '+esc(fL(sent.at.slice(0,10))):'')+(sent.error?' · '+esc(sent.error):'')+'</dd><dt>From</dt><dd>'+esc(ELECTIONS_FROM)+'</dd><dt>Send On</dt><dd>'+esc(o.sendAfter?fL(o.sendAfter):"Whenever you're ready")+' (it waits for you to press Send)</dd>'+(o.note?'<dt>Note</dt><dd>'+esc(o.note)+'</dd>':'')+(o.merge?'<dt>Personal Links</dt><dd>'+plural(o.merge.length,"person","people")+(o.batch?" · group "+o.batch:"")+'; each gets their own ballot link</dd>':'')+'</div>',
+    top:'<div class="kv" style="margin-bottom:12px"><dt>Status</dt><dd>'+chip(OSTAT,st)+(sent.at?' '+esc(fL(sent.at.slice(0,10))):'')+(sent.error?' · '+esc(sent.error):'')+'</dd><dt>From</dt><dd>'+esc(ELECTIONS_FROM)+'</dd><dt>Send On</dt><dd>'+esc(o.sendAfter?fL(o.sendAfter):"Whenever you're ready")+(st==="scheduled"?' (sends automatically, weekdays 9 to 5 Eastern)':' (it waits for you to press Send)')+'</dd>'+(o.note?'<dt>Note</dt><dd>'+esc(o.note)+'</dd>':'')+(o.merge?'<dt>Personal Links</dt><dd>'+plural(o.merge.length,"person","people")+(o.batch?" · group "+o.batch:"")+'; each gets their own ballot link</dd>':'')+'</div>',
     extra:'<div class="fsec">What They Receive</div><div class="mailprev">'+(o.html||emailHtml(o)).replace(/^[\s\S]*<body[^>]*>/,"").replace(/<\/body>[\s\S]*$/,"")+'</div>',
     fields:o.merge?[{k:"subject",label:"Subject",wide:true},{k:"body",label:"Message",type:"textarea",rows:14}]:[{k:"to",label:"To (one per line)",type:"textarea",rows:3,hint:"Name <address> or just the address"},{k:"subject",label:"Subject",wide:true},{k:"body",label:"Message",type:"textarea",rows:14}],
-    buttons: st==="sent"?[]:[(st==="send"?{label:"Stop Sending", run:async()=>{ if(S.outsent[id]){ toast("Already sent"); return; } await patch("outbox",id,{status:"draft", sendAt:"", sentBy:""}); closePane(true); toast("Stopped"); }}:{label:CAN_SEND()?"Send Now":"Send (on resources.mismo.org)", run:async v=>{ if(!CAN_SEND()){ toast("Send from Elections HQ on resources.mismo.org"); return; } if(!window.__sendSure||window.__sendSure!==id){ window.__sendSure=id; setTimeout(()=>{ window.__sendSure=null; },4000); toast("Press Send Now again to send it"); return; } window.__sendSure=null; await saveOut(o,v); await sendOut(id); closePane(true); }}),{label:"Copy Message", run:async v=>{ copyText((v.subject||"")+"\n\n"+(v.body||""),"Message"); }},{label:"Skip", run:async()=>{ await patch("outbox",id,{status:"skipped"}); closePane(true); }}],
+    buttons: st==="sent"?[]:[(st==="send"||st==="scheduled"?{label:st==="scheduled"?"Hold for Me":"Stop Sending", run:async()=>{ if(S.outsent[id]){ toast("Already sent"); return; } await patch("outbox",id,{status:"draft", sendAt:"", sentBy:""}); closePane(true); toast("Stopped"); }}:{label:CAN_SEND()?"Send Now":"Send (on resources.mismo.org)", run:async v=>{ if(!CAN_SEND()){ toast("Send from Elections HQ on resources.mismo.org"); return; } if(!window.__sendSure||window.__sendSure!==id){ window.__sendSure=id; setTimeout(()=>{ window.__sendSure=null; },4000); toast("Press Send Now again to send it"); return; } window.__sendSure=null; await saveOut(o,v); await sendOut(id); closePane(true); }}),{label:"Copy Message", run:async v=>{ copyText((v.subject||"")+"\n\n"+(v.body||""),"Message"); }},{label:"Skip", run:async()=>{ await patch("outbox",id,{status:"skipped"}); closePane(true); }}],
     save: st==="sent"?null:async v=>{ await saveOut(o,v); } });
 }
 async function saveOut(o,v){ const to=v.to!==undefined? String(v.to).split(/\n|;|,(?![^<]*>)/).map(x=>x.trim()).filter(Boolean).map(x=>{ const m=x.match(/^(.*?)<([^>]+)>$/); return m?{name:m[1].trim(),email:m[2].trim()}:{name:"",email:x}; }) : o.to;
@@ -3658,7 +3668,7 @@ function emailHtml(o){
 }
 async function putOut(id,data){ const d=Object.assign({},data); d.html=emailHtml(Object.assign({id},d)); return put("outbox",id,d); }
 /* drafts made before the branded email existed get it now */
-async function brandOld(){ if(!LIVE||!CANWRITE||!LOADED.has("outbox")||!LOADED.has("cycles")) return; for(const o of vals("outbox")){ if(!o.html && ["draft","send","approved"].includes(o.status)) await patch("outbox",o.id,{html:emailHtml(o)}); } }
+async function brandOld(){ if(!LIVE||!CANWRITE||!LOADED.has("outbox")||!LOADED.has("cycles")) return; for(const o of vals("outbox")){ if(!o.html && ["draft","send","approved","scheduled"].includes(o.status)) await patch("outbox",o.id,{html:emailHtml(o)}); } }
 const _autopilot = autopilot;
 autopilot = async function(){ await _autopilot(); try{ await brandOld(); }catch(e){} };
 
@@ -3701,6 +3711,133 @@ resultsHtml = function(c){
 };
 const _wireResults2 = wireResults;
 wireResults = function(el,c){ _wireResults2(el,c); const b=$("#rs-mt",el); if(b) b.onclick=async()=>{ await queueMtPush(c); await pushMt(); if(!window.__hqMT) toast("Queued. Meeting Trackers updates once Elections HQ runs on resources.mismo.org",4500); }; };
+
+/* ======================= CHANGING DATES =======================
+   Start Year sets every date the first time. After that any date can be moved, as often as needed.
+   While dates are being changed, anything out of order or on a day off is flagged right away.
+   On save, everything the change touches is listed with a tick box: the steps after it, the
+   tasks due on the old date, drafts in the Outbox, the matching Business Domain or Area of Focus
+   date, and the public form. Nothing else moves unless it's ticked. */
+const LINKED_TYPE = {aof:"domain", domain:"aof"};
+const dayGap = (a,b)=>Math.round((P(b)-P(a))/864e5);
+function dayWord(n){ n=Math.abs(n); return n+" day"+(n===1?"":"s"); }
+function dateIssues(c, dates){
+  const ms=MILES[c.type]||[]; const out=[]; let prev=null;
+  ms.forEach(([k,l])=>{ const d=dates[k]; if(!d) return;
+    if(k==="termStart"){ if(offDay(d)&&false){} return; }  /* terms begin January 1, before or after orientation */
+    if(prev && d<prev.d) out.push({k, bad:true, msg:"<b>"+esc(l)+"</b> ("+esc(fLong(d))+") is now before <b>"+esc(prev.l)+"</b> ("+esc(fLong(prev.d))+")."});
+    if(offDay(d)) out.push({k, msg:"<b>"+esc(l)+"</b> falls on "+(HOLIDAYS[d]?esc(HOLIDAYS[d])+", a MISMO holiday":"a weekend")+"."});
+    prev={d,l}; });
+  const span=(a,b)=>dates[a]&&dates[b]?dayGap(dates[a],dates[b]):null;
+  const nw=span("nomOpen","nomClose"); if(nw!==null && nw>=0 && nw<7) out.push({k:"nomClose", msg:"Nominations are open only "+dayWord(nw)+"."});
+  const bw=span("ballotOpen","ballotClose"); if(bw!==null && bw>=0 && bw<5) out.push({k:"ballotClose", msg:"Voting is open only "+dayWord(bw)+"."});
+  if(dates.ballotClose && dates.announce && dates.announce<dates.ballotClose) {} /* covered by the order check */
+  return out;
+}
+function issuesHtml(list){ if(!list.length) return '<div class="dt-ok">Every date is in order.</div>';
+  return '<div class="dt-warn"><b class="dt-h">Check these</b><ul>'+list.map(x=>'<li class="'+(x.bad?"bad":"")+'">'+x.msg+'</li>').join("")+'</ul></div>'; }
+
+openDates = function(c, focusKey){
+  const ms=MILES[c.type]||[];
+  const fields=[{sec:"Dates for the "+c.year+" "+TYPES[c.type].name}].concat(ms.map(([k,l,w])=>({k:"d_"+k,label:l,type:"date",get:()=>cdate(c,k),hint:w||""})));
+  fields.push({sec:"Public Forms"},{k:"fn",label:"Nomination Form",type:"select",opts:[["auto","Open between the nomination dates"],["open","Open now"],["closed","Closed"]],get:()=>(c.forms||{}).nominate||"auto"});
+  if(c.type!=="board") fields.push({k:"fb",label:"Ballot",type:"select",opts:[["auto","Open between the voting dates"],["open","Open now"],["closed","Closed"]],get:()=>(c.forms||{}).ballot||"auto"});
+  fields.push({sec:"Notes"},{k:"notes",label:"Notes for this cycle",type:"textarea",rows:3,get:()=>c.notes||""});
+  const readNow=()=>{ const d={}; ms.forEach(([k])=>{ const el=$("#f-d_"+k); const p=el?parseDateIn(el.value):cdate(c,k); d[k]=p===null?cdate(c,k):p; }); return d; };
+  openPane({eye:TYPES[c.type].name, title:c.year+" Dates and Forms", fields, noFocus:!!focusKey,
+    top:'<p class="note" style="margin:0 0 12px">Change any date. If it affects anything else, you\'ll see what before anything else moves.</p><div id="dt-live">'+issuesHtml(dateIssues(c,c.dates||{}))+'</div>',
+    after:b=>{ const upd=()=>{ const l=$("#dt-live"); if(l) l.innerHTML=issuesHtml(dateIssues(c,readNow())); };
+      b.addEventListener("input",upd); b.addEventListener("change",upd); b.addEventListener("click",()=>setTimeout(upd,60));
+      if(focusKey){ const el=$("#f-d_"+focusKey); if(el) setTimeout(()=>{ el.scrollIntoView({block:"center"}); el.focus({preventScroll:true}); el.select&&el.select(); },260); } },
+    stay:true, savedMsg:"Dates saved",
+    save:async v=>{
+      const before=Object.assign({},c.dates||{}); const dates=Object.assign({},before);
+      ms.forEach(([k])=>{ dates[k]=v["d_"+k]||""; });
+      const changed=ms.map(([k,l])=>({k,l,from:before[k]||"",to:dates[k]||""})).filter(x=>x.from!==x.to);
+      await patch("cycles",c.id,{dates, forms:{nominate:v.fn, ballot:v.fb||"auto"}, notes:v.notes});
+      const fresh=Object.assign({},c,{dates});
+      if(!changed.length){ closePane(true); return; }
+      setTimeout(()=>openImpact(fresh, changed),50);
+    }});
+};
+
+/* what a change touches */
+function impactsOf(c, changed){
+  const ms=(MILES[c.type]||[]).map(m=>m[0]); const label=k=>((MILES[c.type]||[]).find(m=>m[0]===k)||[k,k])[1];
+  const dated=changed.filter(x=>x.from && x.to);
+  const out={shift:[], tasks:[], drafts:[], sent:[], linked:[], form:false};
+  /* the steps after each moved date: only those that would now be out of order move, by the same
+     number of days, and each one moved can push the next. Term start and orientation never move. */
+  const FIXED=["termStart","orient"];
+  dated.forEach(x=>{ const delta=dayGap(x.from,x.to); if(delta<=0) return; const i=ms.indexOf(x.k); let floor=x.to;
+    for(const k of ms.slice(i+1)){ if(changed.some(y=>y.k===k)){ floor=cdate(c,k)||floor; continue; } const d=cdate(c,k); if(!d) continue;
+      const already=out.shift.find(s=>s.k===k); const cur=already?already.to:d;
+      if(cur>=floor){ floor=cur; if(!already) break; continue; }
+      if(FIXED.includes(k)){ out.fixed=(out.fixed||[]).concat([{k,l:label(k),d}]); continue; }
+      const to=workday(add(d,delta),1);
+      if(already) already.to=to; else out.shift.push({k, l:label(k), from:d, to, conflict:true, by:x.l, delta});
+      floor=to; } });
+  const allMoves=()=>changed.concat(out.shift);
+  /* tasks due on an old date */
+  dated.forEach(x=>{ vals("tasks").filter(t=>t.cycle===c.id && !t.done && t.due===x.from).forEach(t=>out.tasks.push({id:t.id, title:t.title, from:x.from, to:x.to})); });
+  /* drafts dated on, or mentioning, an old date */
+  const mentions=(o,d)=>{ const txt=(o.subject||"")+"\n"+(o.body||""); return [fLong(d),fL(d),fS(d)].filter(Boolean).some(f=>txt.includes(f)); };
+  vals("outbox").filter(o=>o.cycle===c.id).forEach(o=>{ const st=outStatus(o);
+    const hits=dated.filter(x=>o.sendAfter===x.from || mentions(o,x.from));
+    if(!hits.length) return;
+    if(st==="sent"||st==="send") out.sent.push({id:o.id, subject:o.subject, dates:hits});
+    else if(st!=="skipped") out.drafts.push({id:o.id, subject:o.subject, dates:hits}); });
+  /* the other election that shares the announcement and nomination window */
+  const lt=LINKED_TYPE[c.type]; const lc=lt? vals("cycles").find(x=>x.type===lt && String(x.year)===String(c.year)) : null;
+  if(lc) changed.forEach(x=>{ if(x.from && cdate(lc,x.k)===x.from) out.linked.push({k:x.k, l:label(x.k), cycle:lc.id, to:x.to}); });
+  out.linkedCycle=lc;
+  out.form=changed.some(x=>["nomOpen","nomClose","ballotOpen","ballotClose"].includes(x.k));
+  out.allMoves=allMoves;
+  return out;
+}
+
+function openImpact(c, changed){
+  const im=impactsOf(c, changed);
+  const li=(a)=>'<ul class="imp">'+a.join("")+'</ul>';
+  const moved=li(changed.map(x=>'<li><b>'+esc(x.l)+'</b>: '+(x.from?esc(fLong(x.from)):"no date")+' &rarr; '+(x.to?esc(fLong(x.to)):"no date")+'</li>'));
+  const fields=[]; const extra=[];
+  const conflicts=im.shift.filter(s=>s.conflict);
+  if(im.shift.length){ fields.push({k:"shift",type:"cb",label:"Move the "+plural(im.shift.length,"step")+" that would now be out of order (each by "+dayWord(im.shift[0].delta)+", to a workday)",get:()=>true, wide:true});
+    fields.push({k:"shiftList",type:"html",wide:true,html:()=>li(im.shift.map(s=>'<li><b>'+esc(s.l)+'</b>: '+esc(fLong(s.from))+' &rarr; '+esc(fLong(s.to))+'</li>'))}); }
+  if(im.fixed&&im.fixed.length) extra.push('<div class="dt-warn" style="margin-top:14px"><b class="dt-h">These stay put</b>'+li(im.fixed.map(f=>'<li><b>'+esc(f.l)+'</b> is '+esc(fLong(f.d))+'. It doesn\'t move with other dates; change it yourself if it has to.</li>'))+'</div>');
+  if(im.tasks.length) fields.push({k:"tasks",type:"cb",label:"Move "+plural(im.tasks.length,"task")+" due on the old date",get:()=>true,wide:true},
+    {k:"taskList",type:"html",wide:true,html:()=>li(im.tasks.map(t=>'<li>'+esc(t.title)+': '+esc(fS(t.from))+' &rarr; '+esc(fS(t.to))+'</li>'))});
+  if(im.drafts.length) fields.push({k:"drafts",type:"cb",label:"Update "+plural(im.drafts.length,"draft")+" in the Outbox (send date and the dates in the message)",get:()=>true,wide:true},
+    {k:"draftList",type:"html",wide:true,html:()=>li(im.drafts.map(o=>'<li>'+esc(o.subject||"")+'</li>'))});
+  if(im.linked.length) fields.push({k:"linked",type:"cb",label:"Change the same "+plural(im.linked.length,"date")+" for "+TYPES[LINKED_TYPE[c.type]].name+" (they share it today)",get:()=>true,wide:true},
+    {k:"linkedList",type:"html",wide:true,html:()=>li(im.linked.map(x=>'<li><b>'+esc(x.l)+'</b> &rarr; '+esc(fLong(x.to))+'</li>'))});
+  if(im.form) fields.push({k:"form",type:"cb",label:window.__hqPublic?"Update the nomination form's open and close dates on the website":"Save a new nomination form file (this copy can't publish to the website)",get:()=>!!window.__hqPublic,wide:true});
+  if(im.sent.length) extra.push('<div class="dt-warn" style="margin-top:14px"><b class="dt-h">Already sent with the old date</b>'+li(im.sent.map(o=>'<li>'+esc(o.subject||"")+': it gave '+o.dates.map(x=>esc(fLong(x.from))).join(", ")+'</li>'))+'<span class="note">Consider a short correction to the same people. Use Draft Now in the Outbox, or write one.</span></div>');
+  const issues=dateIssues(c,c.dates||{});
+  if(!fields.length && !extra.length){ closePane(true); toast(issues.length?"Saved. Check the dates flagged on the timeline":"Dates saved. Nothing else was affected"); return; }
+  openPane({eye:TYPES[c.type].name+" · "+c.year, title:"What This Change Affects", noDirty:true, noFocus:true,
+    top:'<div class="fsec" style="margin-top:0">You Changed</div>'+moved+(fields.length?'<div class="fsec">Also Change?</div><p class="note" style="margin:0 0 8px">Only what\'s ticked moves.</p>':''),
+    fields, extra:extra.join("")+'<div id="dt-after" style="margin-top:12px">'+(issues.length?issuesHtml(issues):'')+'</div>',
+    saveLabel:"Apply", savedMsg:"Done",
+    buttons:[{label:"Leave Everything Else", run:async()=>{ closePane(true); toast("Only the dates you changed were moved"); }}],
+    save:async v=>{
+      let dates=Object.assign({},c.dates||{}); const moves=changed.slice();
+      if(v.shift){ im.shift.forEach(s=>{ dates[s.k]=s.to; moves.push(s); }); await patch("cycles",c.id,{dates}); }
+      const toOf={}; moves.forEach(m=>{ if(m.from && m.to) toOf[m.from]=toOf[m.from]||m.to; });
+      if(v.tasks){ for(const t of im.tasks) await patch("tasks",t.id,{due:t.to}); }
+      if(v.shift && v.tasks){ for(const s of im.shift) for(const t of vals("tasks").filter(t=>t.cycle===c.id && !t.done && t.due===s.from)) await patch("tasks",t.id,{due:s.to}); }
+      if(v.drafts){ const swap=(txt)=>{ let s=String(txt||""); Object.entries(toOf).forEach(([f,t])=>{ s=s.split(fL(f)).join(fL(t)).split(fLong(f)).join(fLong(t)); }); return s; };
+        const ids=new Set(im.drafts.map(o=>o.id));
+        if(v.shift) vals("outbox").filter(o=>o.cycle===c.id && !["sent","send","skipped"].includes(outStatus(o)) && im.shift.some(s=>o.sendAfter===s.from)).forEach(o=>ids.add(o.id));
+        for(const id of ids){ const o=S.outbox[id]; if(!o) continue; await putOut(id,Object.assign({},o,{subject:swap(o.subject), body:swap(o.body), sendAfter:toOf[o.sendAfter]||o.sendAfter})); } }
+      if(v.linked && im.linkedCycle){ const lc=im.linkedCycle; const ld=Object.assign({},lc.dates||{});
+        moves.forEach(m=>{ if(m.from && cdate(lc,m.k)===m.from) ld[m.k]=m.to; }); await patch("cycles",lc.id,{dates:ld});
+        if(v.tasks) for(const m of moves) for(const t of vals("tasks").filter(t=>t.cycle===lc.id && !t.done && t.due===m.from)) await patch("tasks",t.id,{due:m.to}); }
+      if(v.form){ try{ await publishNominate(); }catch(e){} }
+      const after=dateIssues(Object.assign({},c,{dates}),dates);
+      if(after.some(x=>x.bad)) setTimeout(()=>toast("Some dates are still out of order. Open Change Dates to fix them",6000),400);
+    }});
+}
 
 /* ================= Start the next election year ================= */
 function openStartYear(){
@@ -3746,7 +3883,7 @@ const HELP=[
   ["Getting Started","The new structure",'<p>Communities of Practice become <b>Areas of Focus</b> (two elected Co-Chairs and a staff facilitator). Development Workgroups become <b>Task Forces</b> (a Lead set by the domain, an optional Co-Lead, a Requestor Sponsor and a facilitator; not elected). Each sits in one of eight <b>Business Domains</b>, which elect a Chair, a Vice Chair and a Care and Feeding Lead. The Council of Chairs is now the Domain Chairs, the Business Executive Team becomes the Board\'s Prioritization Committee, and the Residential and Commercial Standards Governance Committees become the five-person Governance Committee.</p><p>The <b>Structure</b> page shows the chart and checks every group against Meeting Trackers.</p>'],
   ["Getting Started","Meeting Trackers",'<p>Meeting Trackers is the source of truth for which groups are active. A group archived there gets no seat on the ballot. Each leader\'s attendance (meetings attended of meetings held that year) shows on the Leadership Roster and beside each person serving now.</p><p>Voting in Area of Focus and Domain elections is one vote per member company that took part that year; a ballot from a company Meeting Trackers hasn\'t seen in that group is held for a look.</p>'],
   ["Getting Started","Starting a new year",'<p>On the Election Year page, press <b>Start the Next Election Year</b>. Dates move forward a year onto the same weekday, tasks are copied with every box unticked, and seats are rebuilt: two Co-Chairs for every Area of Focus still meeting, and three seats for every Business Domain.</p>'],
-  ["Automation","The Outbox",'<p>Elections HQ drafts every email on schedule: the call for nominations, the nominee confirmation, the gaps notice, the last call, ballots, reminders, the one-company notice and the results. Nothing ever sends on its own. Each draft waits in <b>Ready for You</b> until you press <b>Send</b> (press it twice to be sure); it then goes from elections@mba.org within a few minutes. Drag it back to Ready for You before then to stop it. Each message type is set to <b>Draft It</b> or <b>Don\'t Draft</b>.</p><p>Press <b>Draft Now</b> to read a message before its date.</p>'],
+  ["Automation","The Outbox",'<p>Elections HQ drafts every email on schedule: the call for nominations, the nominee confirmation, the gaps notice, the last call, ballots, reminders, the one-company notice and the results. Each kind of message is set to <b>I\'ll Send It</b> (it waits in Ready for You until you press <b>Send</b>, twice to be sure), <b>Send Automatically</b> (it goes on its date, weekdays 9 to 5 Eastern) or <b>Don\'t Draft</b>. Everything starts as I\'ll Send It. Either way it goes from elections@mismo.org; drag it back to Ready for You, or press Hold for Me, to stop it before it goes.</p><p>Press <b>Draft Now</b> to read a message before its date.</p>'],
   ["Automation","Nominee confirmations",'<p>When a nomination is accepted, the nominee gets an email with a personal link to say yes or no. Their answer is logged and the nominee moves to On the Ballot, or to Not Going Ahead, with nothing for you to do. Open a nominee and press <b>Nominee\'s Confirmation</b> to see what they see.</p>'],
   ["Nominations","How a nomination comes in",'<ol><li>Someone fills in the public nomination form.</li><li>It lands in From the Form on Nominations, flagged if it looks like spam or is already there.</li><li>Drag it to To Confirm (or press Accept). The nominee is emailed to confirm.</li><li>When they say yes, it moves to On the Ballot.</li></ol>'],
   ["Voting","One company, one vote",'<p>When a company sends more than one ballot for the same group, those ballots are held. The one-company email goes to them automatically; when they answer, press <b>Count This One</b> on the ballot that stands.</p><p>Ballots emailed to info@mismo.org go in with <b>+ Ballot Sent by Email</b> on Ballots &amp; Results.</p>'],
