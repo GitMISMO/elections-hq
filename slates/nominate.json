@@ -8,7 +8,7 @@
       "closes": "2026-11-13",
       "from": "2026-11-02",
       "until": "2026-11-13",
-      "mode": "auto",
+      "mode": "closed",
       "groups": [
         {
           "name": "Close and Fund",
@@ -21,10 +21,6 @@
             {
               "seat": "2027-domain__dom-close-and-fund__1",
               "position": "Vice Chair"
-            },
-            {
-              "seat": "2027-domain__dom-close-and-fund__2",
-              "position": "Care and Feeding Lead"
             }
           ]
         },
@@ -39,10 +35,6 @@
             {
               "seat": "2027-domain__dom-data-technology-enablement__1",
               "position": "Vice Chair"
-            },
-            {
-              "seat": "2027-domain__dom-data-technology-enablement__2",
-              "position": "Care and Feeding Lead"
             }
           ]
         },
@@ -57,10 +49,6 @@
             {
               "seat": "2027-domain__dom-digital-mortgage__1",
               "position": "Vice Chair"
-            },
-            {
-              "seat": "2027-domain__dom-digital-mortgage__2",
-              "position": "Care and Feeding Lead"
             }
           ]
         },
@@ -75,10 +63,6 @@
             {
               "seat": "2027-domain__dom-origination__1",
               "position": "Vice Chair"
-            },
-            {
-              "seat": "2027-domain__dom-origination__2",
-              "position": "Care and Feeding Lead"
             }
           ]
         },
@@ -93,10 +77,6 @@
             {
               "seat": "2027-domain__dom-risk-compliance-governance__1",
               "position": "Vice Chair"
-            },
-            {
-              "seat": "2027-domain__dom-risk-compliance-governance__2",
-              "position": "Care and Feeding Lead"
             }
           ]
         },
@@ -111,10 +91,6 @@
             {
               "seat": "2027-domain__dom-secondary-market__1",
               "position": "Vice Chair"
-            },
-            {
-              "seat": "2027-domain__dom-secondary-market__2",
-              "position": "Care and Feeding Lead"
             }
           ]
         },
@@ -129,10 +105,6 @@
             {
               "seat": "2027-domain__dom-servicing__1",
               "position": "Vice Chair"
-            },
-            {
-              "seat": "2027-domain__dom-servicing__2",
-              "position": "Care and Feeding Lead"
             }
           ]
         },
@@ -147,10 +119,6 @@
             {
               "seat": "2027-domain__dom-third-party-services__1",
               "position": "Vice Chair"
-            },
-            {
-              "seat": "2027-domain__dom-third-party-services__2",
-              "position": "Care and Feeding Lead"
             }
           ]
         }
@@ -165,20 +133,12 @@
           "position": "Vice Chair"
         },
         {
-          "seat": "2027-domain__dom-close-and-fund__2",
-          "position": "Care and Feeding Lead"
-        },
-        {
           "seat": "2027-domain__dom-data-technology-enablement__0",
           "position": "Chair"
         },
         {
           "seat": "2027-domain__dom-data-technology-enablement__1",
           "position": "Vice Chair"
-        },
-        {
-          "seat": "2027-domain__dom-data-technology-enablement__2",
-          "position": "Care and Feeding Lead"
         },
         {
           "seat": "2027-domain__dom-digital-mortgage__0",
@@ -189,20 +149,12 @@
           "position": "Vice Chair"
         },
         {
-          "seat": "2027-domain__dom-digital-mortgage__2",
-          "position": "Care and Feeding Lead"
-        },
-        {
           "seat": "2027-domain__dom-origination__0",
           "position": "Chair"
         },
         {
           "seat": "2027-domain__dom-origination__1",
           "position": "Vice Chair"
-        },
-        {
-          "seat": "2027-domain__dom-origination__2",
-          "position": "Care and Feeding Lead"
         },
         {
           "seat": "2027-domain__dom-risk-compliance-governance__0",
@@ -213,20 +165,12 @@
           "position": "Vice Chair"
         },
         {
-          "seat": "2027-domain__dom-risk-compliance-governance__2",
-          "position": "Care and Feeding Lead"
-        },
-        {
           "seat": "2027-domain__dom-secondary-market__0",
           "position": "Chair"
         },
         {
           "seat": "2027-domain__dom-secondary-market__1",
           "position": "Vice Chair"
-        },
-        {
-          "seat": "2027-domain__dom-secondary-market__2",
-          "position": "Care and Feeding Lead"
         },
         {
           "seat": "2027-domain__dom-servicing__0",
@@ -237,302 +181,12 @@
           "position": "Vice Chair"
         },
         {
-          "seat": "2027-domain__dom-servicing__2",
-          "position": "Care and Feeding Lead"
-        },
-        {
           "seat": "2027-domain__dom-third-party-services__0",
           "position": "Chair"
         },
         {
           "seat": "2027-domain__dom-third-party-services__1",
           "position": "Vice Chair"
-        },
-        {
-          "seat": "2027-domain__dom-third-party-services__2",
-          "position": "Care and Feeding Lead"
-        }
-      ],
-      "boardSeats": [
-        "Residential Lender",
-        "Credit Reporting",
-        "Technology or Service Provider",
-        "Commercial / Multifamily Lender",
-        "Mortgage Insurance",
-        "Other"
-      ]
-    },
-    {
-      "cycle": "2027-aof",
-      "type": "aof",
-      "name": "2027 Areas of Focus",
-      "open": false,
-      "closes": "2026-11-13",
-      "from": "2026-11-02",
-      "until": "2026-11-20",
-      "mode": "auto",
-      "groups": [
-        {
-          "name": "API",
-          "domain": "Data & Technology Enablement",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-api",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Architecture",
-          "domain": "Data & Technology Enablement",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-architecture",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Artificial Intelligence",
-          "domain": "Data & Technology Enablement",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-artificial-intelligence",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Credit Reporting",
-          "domain": "Third Party Services",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-credit-reporting",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Data Governance & Management",
-          "domain": "Risk, Compliance & Governance",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-data-governance-management",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Decision Modeling",
-          "domain": "Data & Technology Enablement",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-decision-modeling",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Digital Interoperability",
-          "domain": "Digital Mortgage",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-digital-interoperability",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "eMortgage",
-          "domain": "Digital Mortgage",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-emortgage",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "HERO",
-          "domain": "Risk, Compliance & Governance",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-hero",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Mortgage Insurance",
-          "domain": "Third Party Services",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-mortgage-insurance",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Origination",
-          "domain": "Origination",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-origination",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Property & Valuation Services",
-          "domain": "Third Party Services",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-property-valuation-services",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Secondary",
-          "domain": "Secondary Market",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-secondary",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Servicing",
-          "domain": "Servicing",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-servicing",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "TIE",
-          "domain": "Data & Technology Enablement",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-tie",
-              "position": "Co-Chair"
-            }
-          ]
-        },
-        {
-          "name": "Title & Closing",
-          "domain": "Close and Fund",
-          "positions": [
-            {
-              "seat": "2027-aof__aof-title-closing",
-              "position": "Co-Chair"
-            }
-          ]
-        }
-      ],
-      "seats": [
-        {
-          "seat": "2027-aof__aof-api",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-architecture",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-artificial-intelligence",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-credit-reporting",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-data-governance-management",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-decision-modeling",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-digital-interoperability",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-emortgage",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-hero",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-mortgage-insurance",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-origination",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-property-valuation-services",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-secondary",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-servicing",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-tie",
-          "position": "Co-Chair"
-        },
-        {
-          "seat": "2027-aof__aof-title-closing",
-          "position": "Co-Chair"
-        }
-      ],
-      "boardSeats": [
-        "Residential Lender",
-        "Credit Reporting",
-        "Technology or Service Provider",
-        "Commercial / Multifamily Lender",
-        "Mortgage Insurance",
-        "Other"
-      ]
-    },
-    {
-      "cycle": "2027-goc",
-      "type": "goc",
-      "name": "2027 Governance Committee",
-      "open": false,
-      "closes": "2026-11-24",
-      "from": "2026-11-16",
-      "until": "2026-11-24",
-      "mode": "auto",
-      "groups": [
-        {
-          "name": "Governance Committee",
-          "domain": "",
-          "positions": [
-            {
-              "seat": "2027-goc__members",
-              "position": "Governance Committee Member"
-            }
-          ]
-        }
-      ],
-      "seats": [
-        {
-          "seat": "2027-goc__members",
-          "position": "Governance Committee Member"
         }
       ],
       "boardSeats": [
@@ -565,5 +219,5 @@
       ]
     }
   ],
-  "at": "2026-10-29T23:54:11.193Z"
+  "at": "2026-10-30T18:47:53.452Z"
 }
