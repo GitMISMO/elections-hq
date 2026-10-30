@@ -1541,6 +1541,13 @@ tr.join td{background:color-mix(in srgb,var(--good-soft) 70%,transparent)}
 .dt-warn li,.imp li{margin:3px 0;font-size:13px;line-height:1.45}
 .dt-warn li.bad,.imp li.bad{color:var(--bad,#b3372c)}
 .imp{margin-bottom:10px}
+/* the Bylaws: (i) buttons beside page titles and in panels */
+.bylaw-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
+.infob{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12px;font-weight:600;color:var(--ink-2);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px 10px 4px 7px;cursor:pointer;line-height:1.2}
+.infob:hover{border-color:var(--sky,#74bfeb);color:var(--ink)}
+.infob svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;flex:0 0 auto}
+.bylaw-more{display:flex;flex-wrap:wrap;gap:6px}
+#pane .bylaw-row{margin:0 0 14px}
 
 </style>
 </head><body>
@@ -1881,7 +1888,8 @@ const MILES = {
     ["nomClose","Nominations Close","Midnight Eastern"],
     ["ballotOpen","Call for Vote","Email to MVRs and MVAs (500 recipients per send)"],
     ["ballotClose","Voting Closes",""],
-    ["audit","Results to Audit","Michael Briggs reviews the count"],
+    ["audit","Results to Legal","The results go to MBA Legal, the third party, to certify"],
+    ["certDue","Certification Back","MBA Legal confirms the election was fair"],
     ["calls","Calls to Candidates","Before the general announcement"],
     ["announce","Results Announced",""],
     ["leadNom","Leadership Nominations","The new committee nominates its Chair and Vice Chair"],
@@ -1893,6 +1901,7 @@ const MILES = {
     ["recruit","Recruiting","Prospects contacted for open seats"],
     ["slate","Slate Drafted","Exits, successors, extensions, committee roles"],
     ["nomCommittee","Nominating Committee","Reviews the slate"],
+    ["toMBA","Names to MBA","Nominees for Chair, Vice-Chair and Directors to MBA, at least 30 days before year end"],
     ["bodApproval","Board Approval","Mid-December Board meeting"],
     ["notify","New Members Told","Welcome and onboarding packet"],
     ["orient","Orientation","New member orientation"],
@@ -2637,8 +2646,10 @@ const COMMS = {
 "A reminder that nominations for MISMO's Governance Committee close {{nomClose}}, midnight Eastern.\n\nNominate here: {{nominateLink}}"],
     ["ballot","Call for Vote","ballotOpen","MVRs and MVAs (split into groups of 500)","Vote for MISMO's Governance Committee by {{ballotClose}}",
 "Dear MISMO Voting Representative,\n\nThe ballot for MISMO's Governance Committee is open until {{ballotClose}}. Vote for up to five candidates.\n\nYour ballot: {{ballotLink}}\n\nEach member company has one vote. If you can't open the ballot, email your votes to info@mismo.org."],
-    ["audit","Results to the Auditor","audit","Michael Briggs","Governance Committee election results for audit",
-"Hi Michael,\n\nAttached are the {{year}} Governance Committee election results and the ballot list for your audit. Could you return it by {{calls}}?\n\nThank you"],
+    ["legalHeads","Heads-Up to MBA Legal","ballotOpen","MBA Legal (certifies the results)","MISMO Call for Vote: Governance Committee, Upcoming Certification Request",
+"Hi {{legalFirst}},\n\nI hope you're doing well! A quick heads-up that it's that time of year again. The Call for Vote for MISMO's Governance Committee went out today, and voting closes at midnight Eastern on {{ballotClose}}.\n\nI'll send you the election results to certify on {{audit}}, and would be grateful to have them back by close of business {{certDue}}. Please let me know if that works with your schedule.\n\nThank you!\n\n{{signature}}"],
+    ["certify","Request to Certify the Results","audit","MBA Legal (certifies the results)","Request to Certify MISMO {{body}} Election Results",
+"Built from the count when it's drafted: the process with its dates, the ballots received, any company that voted twice and which ballot counted, any tie and how it was settled, and every seat's elected and not elected nominees, with the ballot breakdown and the count attached."],
     ["elected","You Were Elected","calls","Each candidate elected","You've been elected to MISMO's Governance Committee",
 "Congratulations. You've been elected to MISMO's Governance Committee for terms beginning January 1, {{year}}.\n\nWe'll be in touch about orientation and the committee's first meeting. Please keep this to yourself until the announcement on {{announce}}."],
     ["notElected","Thank You for Running","calls","Each candidate not elected","Thank you for running for the Governance Committee",
@@ -2655,7 +2666,7 @@ const COMMS = {
 };
 function mergeText(s,c,extra){
   const d=k=>fLong(cdate(c,k));
-  const m=Object.assign({year:c.year, prevYear:c.year-1, nomOpen:d("nomOpen"), nomClose:d("nomClose"), lastCall:d("lastCall"), ballotOpen:d("ballotOpen"), ballotClose:d("ballotClose"), announce:d("announce"), orient:d("orient"), calls:d("calls"),
+  const m=Object.assign({year:c.year, prevYear:c.year-1, nomOpen:d("nomOpen"), nomClose:d("nomClose"), lastCall:d("lastCall"), ballotOpen:d("ballotOpen"), ballotClose:d("ballotClose"), announce:d("announce"), orient:d("orient"), calls:d("calls"), audit:d("audit"), certDue:d("certDue")||d("calls"), release:d("release"), reminder:d("reminder"), body:(TYPES[c.type]||{}).name||"", legalFirst:(typeof LEGAL==="function"&&LEGAL().name?LEGAL().name.split(" ")[0]:"there"), signature:(typeof SIGNATURE!=="undefined"?SIGNATURE:"MISMO"),
     nominateLink:FORM_BASE+"nominate/?e="+c.id, ballotLink:FORM_BASE+"ballot/?e="+c.id, group:"your Community of Practice"}, extra||{});
   return String(s||"").replace(/\{\{(\w+)\}\}/g,(x,k)=>m[k]!=null&&m[k]!==""?m[k]:x);
 }
@@ -3227,8 +3238,9 @@ const ELECTIONS_FROM = "elections@mismo.org";
    own address (a member of every community); everything else goes from elections@mismo.org. */
 const CONNECT_FROM = ()=>{ const a=(typeof S!=="undefined"&&S.settings&&S.settings.automation)||{}; return {name:a.connectFromName||"Jonna Critchley", email:a.connectFrom||"jcritchley@mba.org"}; };
 const isConnect = o=>(o.to||[]).some(r=>/@connectedcommunity\.org$/i.test((r&&r.email)||""));
-const fromOf = o=>isConnect(o)? CONNECT_FROM().email : ELECTIONS_FROM;
-const fromLabel = o=>isConnect(o)? CONNECT_FROM().name+" <"+CONNECT_FROM().email+">, so MISMO Connect accepts the post" : ELECTIONS_FROM;
+const fromMe = o=>isConnect(o)||o.sendAs==="me";
+const fromOf = o=>fromMe(o)? CONNECT_FROM().email : ELECTIONS_FROM;
+const fromLabel = o=>isConnect(o)? CONNECT_FROM().name+" <"+CONNECT_FROM().email+">, so MISMO Connect accepts the post" : o.sendAs==="me"? CONNECT_FROM().name+" <"+CONNECT_FROM().email+">" : ELECTIONS_FROM;
 const ATT_YEAR = c=>String((+((c||{}).year)||curYear())-1);   /* 2027 terms: attendance in 2026 */
 
 /* ---------- Meeting Trackers ---------- */
@@ -3421,6 +3433,8 @@ const RULES = [
   ["voteReminder","aof","Reminder to Vote","dupCheck","ask","Each Area of Focus on MISMO Connect"],
   ["voteReminder","goc","Reminder to Vote (not voted yet)","dupCheck","ask","MVRs and MVAs whose company hasn't voted"],
   ["dupe","*","Company Voted Twice","event","ask","The voters from that company"],
+  ["legalHeads","goc","Heads-Up to MBA Legal","ballotOpen","ask","MBA Legal, who certifies the results"],
+  ["certify","goc","Request to Certify the Results","audit","ask","MBA Legal, who certifies the results (the count is attached)"],
   ["elected","*","You Were Elected","event","ask","Each person elected, once results are final"],
   ["notElected","*","Thank You for Running","event","ask","Each nominee not elected, once results are final"]
 ];
@@ -3567,9 +3581,9 @@ function openOut(id){
 async function saveOut(o,v){ const to=v.to!==undefined? String(v.to).split(/\n|;|,(?![^<]*>)/).map(x=>x.trim()).filter(Boolean).map(x=>{ const m=x.match(/^(.*?)<([^>]+)>$/); return m?{name:m[1].trim(),email:m[2].trim()}:{name:"",email:x}; }) : o.to;
   await putOut(o.id,Object.assign({},o,{to, subject:v.subject, body:v.body, edited:true})); }
 function openPeople(){
-  const a=S.settings.automation||{}; const people=Object.assign({},a.people||{}); const names=[...new Set(["MISMO Community","Michael Briggs"].concat(facilitators()).concat(Object.keys(people)))];
-  openPane({eye:"Outbox", title:"Addresses", data:{}, fields:names.map((n,i)=>({k:"p"+i,label:n,type:"email",get:()=>people[n]||""})).concat([{sec:"Posts to MISMO Connect"},{k:"cfn",label:"Posted As (Name)",get:()=>CONNECT_FROM().name},{k:"cfe",label:"Posted As (Email)",type:"email",get:()=>CONNECT_FROM().email,hint:"Must be a member of every community, or Higher Logic turns the post away"},{sec:"Add a Person"},{k:"newName",label:"Add a Person: Name"},{k:"newEmail",label:"Their Address",type:"email"}]),
-    save:async v=>{ const p={}; names.forEach((n,i)=>{ if(v["p"+i]) p[n]=v["p"+i]; }); if(v.newName && v.newEmail) p[v.newName]=v.newEmail; await put("settings","automation",Object.assign({},a,{people:p, connectFrom:v.cfe||"jcritchley@mba.org", connectFromName:v.cfn||"Jonna Critchley"})); }});
+  const a=S.settings.automation||{}; const people=Object.assign({},a.people||{}); const names=[...new Set(["MISMO Community"].concat(facilitators()).concat(Object.keys(people)))];
+  openPane({eye:"Outbox", title:"Addresses", data:{}, fields:names.map((n,i)=>({k:"p"+i,label:n,type:"email",get:()=>people[n]||""})).concat([{sec:"MBA Legal (Certifies the Results)"},{k:"lgn",label:"Name",get:()=>LEGAL().name,hint:"Who certifies the Governance Committee results. Leave blank until it's decided."},{k:"lge",label:"Email",type:"email",get:()=>LEGAL().email},{sec:"Posts to MISMO Connect"},{k:"cfn",label:"Posted As (Name)",get:()=>CONNECT_FROM().name},{k:"cfe",label:"Posted As (Email)",type:"email",get:()=>CONNECT_FROM().email,hint:"Must be a member of every community, or Higher Logic turns the post away"},{sec:"Add a Person"},{k:"newName",label:"Add a Person: Name"},{k:"newEmail",label:"Their Address",type:"email"}]),
+    save:async v=>{ const p={}; names.forEach((n,i)=>{ if(v["p"+i]) p[n]=v["p"+i]; }); if(v.newName && v.newEmail) p[v.newName]=v.newEmail; await put("settings","automation",Object.assign({},a,{people:p, connectFrom:v.cfe||"jcritchley@mba.org", connectFromName:v.cfn||"Jonna Critchley", legal:{name:v.lgn||"", email:v.lge||""}})); }});
 }
 
 /* ---------- what happened (for watching it run) ---------- */
@@ -3672,9 +3686,9 @@ function emailHtml(o){
   h+='</table></td></tr></table></body></html>';
   return h;
 }
-async function putOut(id,data){ const d=Object.assign({},data); d.from=fromOf(d); d.fromName=isConnect(d)?CONNECT_FROM().name:"MISMO Elections"; d.html=emailHtml(Object.assign({id},d)); return put("outbox",id,d); }
+async function putOut(id,data){ const d=Object.assign({},data); d.from=fromOf(d); d.fromName=fromMe(d)?CONNECT_FROM().name:"MISMO Elections"; d.html=emailHtml(Object.assign({id},d)); return put("outbox",id,d); }
 /* drafts made before the branded email existed get it now */
-async function brandOld(){ if(!LIVE||!CANWRITE||!LOADED.has("outbox")||!LOADED.has("cycles")) return; for(const o of vals("outbox")){ if(["draft","send","approved","scheduled"].includes(o.status) && (!o.html || o.from!==fromOf(o))) await patch("outbox",o.id,{html:o.html||emailHtml(o), from:fromOf(o), fromName:isConnect(o)?CONNECT_FROM().name:"MISMO Elections"}); } }
+async function brandOld(){ if(!LIVE||!CANWRITE||!LOADED.has("outbox")||!LOADED.has("cycles")) return; for(const o of vals("outbox")){ if(["draft","send","approved","scheduled"].includes(o.status) && (!o.html || o.from!==fromOf(o))) await patch("outbox",o.id,{html:o.html||emailHtml(o), from:fromOf(o), fromName:fromMe(o)?CONNECT_FROM().name:"MISMO Elections"}); } }
 const _autopilot = autopilot;
 autopilot = async function(){ await _autopilot(); try{ await brandOld(); }catch(e){} };
 
@@ -3845,6 +3859,144 @@ function openImpact(c, changed){
     }});
 }
 
+/* ======================= CERTIFYING THE RESULTS (MBA LEGAL) =======================
+   Every year the Governance Committee results go to MBA Legal, as a third party, to confirm the
+   election was fair. Elections HQ drafts a heads-up when the Call for Vote goes out and, on the
+   audit date, the Request to Certify: the process with its dates, what came in, any company that
+   voted twice, any tie, and each seat's result, with the ballot breakdown and the count attached.
+   Both come from Jonna's own address. The reviewer is set in Outbox > Addresses. */
+const LEGAL = ()=>{ const a=(typeof S!=="undefined"&&S.settings&&S.settings.automation)||{}; return Object.assign({name:"",email:""}, a.legal||{}); };
+const SIGNATURE = "Jonna Critchley\nDirector, Programs and Operations, MISMO\n1919 M Street NW, 5th Floor | Washington, DC 20036\nTEL: (202) 557-2763 | mismo.org";
+const csvOf = rows=>rows.map(r=>r.map(x=>{ x=String(x==null?"":x); return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x; }).join(",")).join("\r\n");
+function certFiles(c){
+  const t=tally(c), st=voteStatus(c), body=c.year+" MISMO "+TYPES[c.type].name+" Election";
+  const roll=voterRoll(c); const roleOf=v=>{ const e=String((v.voter||{}).email||"").toLowerCase(); const r=roll.find(x=>(x.code&&x.code===v.code)||String(x.email||"").toLowerCase()===e); return r? String(r.role||r.list||"").toUpperCase() : ""; };
+  const nameOf=id=>{ const n=S.nominations[id]||{}; return fullName(n); };
+  const b=[["Ballot","Submitted (Eastern)","Voter","Role","Email","Company","Group","Choices","Counted","Why Not Counted"]];
+  votesOf(c).forEach(v=>{ const x=st[v.id]||{}; const picks=Object.entries(v.choices||{}).map(([sid,p])=>{ const s=S.seats[sid]; return (s?(s.group&&MULTI(c.type)?s.group+" ":"")+s.position:"")+": "+(Array.isArray(p)?p:[p]).map(nameOf).join("; "); }).join(" | ");
+    b.push([v.id, v.submittedAt||"", fullName(v.voter||{}), roleOf(v), (v.voter||{}).email||"", (v.voter||{}).company||"", v.group||"", picks, x.k==="counted"?"Yes":"No", x.k==="counted"?"":(x.why||x.k||"")]); });
+  const k=[["Seat","Nominee","Company","Votes","Elected"]];
+  seatsOf(c).filter(s=>(s.round||1)===1).forEach(s=>{ const w=winnersOf(c,s,t); Object.keys(t[s.id]||{}).sort((a,b2)=>t[s.id][b2]-t[s.id][a]).forEach(i=>{ const n=S.nominations[i]||{}; k.push([seatLabel(s), fullName(n), n.company||"", t[s.id][i], w.ids.includes(i)?"Yes":"No"]); }); });
+  return [{name:body+" - Ballot Breakdown.csv", contentType:"text/csv", content:csvOf(b)}, {name:body+" - Results.csv", contentType:"text/csv", content:csvOf(k)}];
+}
+function certBody(c){
+  const L=LEGAL(), d=k=>fLong(cdate(c,k)), t=tally(c), st=voteStatus(c), vs=votesOf(c);
+  const counted=vs.filter(v=>(st[v.id]||{}).k==="counted");
+  const companies=new Set(vs.map(v=>norm((v.voter||{}).company)).filter(Boolean));
+  let s="Hi "+(L.name?L.name.split(" ")[0]:"there")+",\n\nI hope your week is off to a great start!\n\nAs a reminder, we're forwarding the results of MISMO's "+c.year+" "+TYPES[c.type].name+" election for you, as a third party, to verify and confirm it was fair.\n\nTHE PROCESS\n";
+  if(c.type==="goc"){
+    s+="We announced a Call for Nominations to all MISMO members through a MISMO Connect community notification on "+d("nomOpen")+"."+(cdate(c,"release")?" MBA Public Affairs announced the nomination period through an MBA press release as well.":"")+(cdate(c,"reminder")?" A reminder went out on "+d("reminder")+" to encourage anyone who had not yet nominated to do so":" Nominations were open")+" before the midnight Eastern deadline on "+d("nomClose")+".\n\n";
+    s+="On "+d("ballotOpen")+", a Call for Vote went out with a personal ballot link to every MISMO Voting Representative (MVR) and MISMO Voting Alternate (MVA), asking for ONE vote from each company for the listed nominees. They were told that an organization is entitled to submit only one ballot, and that should both a Voting Representative and an Alternate submit ballots, the Alternate's ballot will be dismissed. Voting closed at midnight Eastern on "+d("ballotClose")+".\n\n";
+  } else {
+    s+="Nominations opened on "+d("nomOpen")+" through MISMO Connect and closed on "+d("nomClose")+(cdate(c,"lastCall")?", with a last call for changes until "+d("lastCall"):"")+". Every nominee confirmed they would serve before the ballot went out.\n\nBallots were open from "+d("ballotOpen")+" to "+d("ballotClose")+", with one vote for each member company that took part in the group that year.\n\n";
+  }
+  s+=plural(vs.length,"ballot")+" came in from "+plural(companies.size,"company","companies")+"; "+counted.length+" counted.\n\nTHE RESULTS\nAttached you will find:\n"+certFiles(c).map(f=>"- "+f.name.replace(/\.csv$/,"")+" (Excel)").join("\n")+"\n";
+  /* a company that voted more than once */
+  const groups={}; vs.forEach(v=>{ const x=st[v.id]||{}; if(x.key) (groups[x.key]=groups[x.key]||[]).push(v); });
+  const notes=[];
+  Object.values(groups).filter(g=>g.length>1).forEach(g=>{ const kept=g.filter(v=>(st[v.id]||{}).k==="counted"); const out=g.filter(v=>(st[v.id]||{}).k!=="counted"); const co=(g[0].voter||{}).company||"One company";
+    notes.push(co+" voted more than once. "+(kept.length?"We counted "+kept.map(v=>fullName(v.voter||{})).join(", ")+"'s ballot and not "+out.map(v=>fullName(v.voter||{})).join(", ")+"'s.":"Neither ballot is counted yet.")); });
+  seatsOf(c).forEach(se=>{ const w=winnersOf(c,se,t); const why=((c.results||{})[se.id]||{}).why; if(w.tie||why) notes.push("There was a tie for "+seatLabel(se)+"."+(why?" "+why:" It still needs settling.")); });
+  if(notes.length) s+="\nPlease note:\n"+notes.map(n=>"- "+n).join("\n")+"\n";
+  s+="\nHere is a summary of the results:\n";
+  seatsOf(c).filter(se=>(se.round||1)===1).forEach(se=>{ const w=winnersOf(c,se,t); const all=onBallot(se.id); const nm=n=>fullName(n)+(n.company?", "+n.company:"");
+    const won=w.ids.map(i=>S.nominations[i]).filter(Boolean), lost=all.filter(n=>!w.ids.includes(n.id));
+    s+="- "+((+se.count||1)>1?se.count+" ":"1 ")+seatLabel(se)+"\n    - Elected: "+(won.length?won.map(nm).join(" and "):"none yet")+"\n    - Not elected: "+(lost.length?lost.map(nm).join(" and "):"Not applicable")+"\n"; });
+  s+="\nPlease reach out with any questions; otherwise, please return your certification no later than close of business "+(d("certDue")||d("calls"))+".\n\nThank you for your time and support!\n\n"+SIGNATURE;
+  return s;
+}
+function certDrafts(c){ const L=LEGAL(); return [{id:c.id+"__certify", cycle:c.id, rule:c.type+".certify", ruleLabel:"Request to Certify the Results", sendAs:"me",
+  subject:"Request to Certify MISMO "+TYPES[c.type].name+" Election Results", body:certBody(c), attachments:certFiles(c), to:L.email?[{name:L.name,email:L.email}]:[]}]; }
+function headsDrafts(c){ const L=LEGAL(); const t=tplFor(c.type,"legalHeads"); if(!t) return [];
+  return [{id:c.id+"__legalHeads", cycle:c.id, rule:c.type+".legalHeads", ruleLabel:"Heads-Up to MBA Legal", sendAs:"me", subject:mergeText(t.subject,c,{}), body:mergeText(t.body,c,{}), to:L.email?[{name:L.name,email:L.email}]:[]}]; }
+const _draftsForC = draftsFor;
+draftsFor = function(c,r){ if(r[0]==="certify") return certDrafts(c); if(r[0]==="legalHeads") return headsDrafts(c); return _draftsForC(c,r); };
+/* draft (or rebuild, if it hasn't gone) the Request to Certify, then open it */
+async function draftCert(c){ const o=certDrafts(c)[0]; const cur=S.outbox[o.id]; const st=cur?outStatus(cur):"";
+  if(cur && (st==="sent"||st==="send")){ openOut(o.id); toast("Already sent"); return; }
+  await putOut(o.id, Object.assign({}, cur||{}, o, {status:cur&&cur.status==="scheduled"?"scheduled":"draft", createdAt:(cur&&cur.createdAt)||new Date().toISOString(), sendAfter:cdate(c,"audit")||T(), auto:false}));
+  setTimeout(()=>openOut(o.id),150); toast(LEGAL().email?"Request to Certify drafted from the current count":"Drafted. Add MBA Legal's address in Outbox > Addresses"); }
+const _resultsHtmlC = resultsHtml;
+resultsHtml = function(c){ let h=_resultsHtmlC(c); if(c.type==="board") return h;
+  const sent=S.outsent[c.id+"__certify"]; const lab=(c.audit||{}).back?"Certified":sent&&sent.status==="sent"?"Certification: Sent":"Certification";
+  if(h.includes('id="rs-audit"')) h=h.replace(/(id="rs-audit">)[^<]*/, '$1'+lab);
+  else h=h.replace('id="rs-csv">Download Count</button>','id="rs-csv">Download Count</button><button class="btn sm" type="button" id="rs-audit">'+lab+'</button>');
+  return h; };
+const _wireResultsC = wireResults;
+wireResults = function(el,c){ _wireResultsC(el,c); const au=$("#rs-audit",el); if(!au) return;
+  au.onclick=()=>{ const x=c.audit||{}; const sent=S.outsent[c.id+"__certify"]; const L=LEGAL();
+    openPane({eye:TYPES[c.type].name+" · "+c.year, title:"Certification by MBA Legal", noDirty:false,
+      top:'<div class="kv" style="margin-bottom:12px"><dt>Certified By</dt><dd>'+esc(L.name?L.name+(L.email?" <"+L.email+">":""):"Not set yet (Outbox > Addresses)")+'</dd><dt>Request Sent</dt><dd>'+esc(sent&&sent.at?fL(sent.at.slice(0,10)):x.sent?fL(x.sent):"Not yet")+'</dd><dt>Due Back</dt><dd>'+esc(fL(cdate(c,"certDue")||cdate(c,"calls")))+'</dd></div>'+(c.final?'':'<div class="banner">Results aren\'t marked final yet. The request is built from the count as it stands; draft it again after settling any ballots.</div>')+infoBtnRow("certify"),
+      data:{by:x.by||L.name||"", sent:x.sent||(sent&&sent.at?sent.at.slice(0,10):""), back:x.back||"", notes:x.notes||""},
+      fields:[{k:"by",label:"Certified By"},{k:"sent",label:"Sent",type:"date"},{k:"back",label:"Certified On",type:"date",hint:"When MBA Legal confirms the election was fair"},{k:"notes",label:"Notes",type:"textarea",rows:3}],
+      buttons:[{label:"Draft the Request to Certify", run:async()=>{ closePane(true); await draftCert(c); }}],
+      save:async v=>{ await patch("cycles",c.id,{audit:v}); }}); }; };
+/* files sent with a message: shown in the Outbox, and saved one at a time */
+const _openOutC = openOut;
+openOut = function(id){ _openOutC(id); const o=S.outbox[id]; if(!o||!(o.attachments||[]).length) return;
+  const b=$("#pane-body"); if(!b) return; const box=document.createElement("div");
+  box.innerHTML='<div class="fsec">Attached</div><div class="checks">'+o.attachments.map((a,i)=>'<div class="chk"><span class="ct"><b>'+esc(a.name)+'</b><small>'+Math.max(1,Math.round((a.content||"").length/1024))+' KB</small></span><button class="btn sm" type="button" data-att="'+i+'">Download</button></div>').join("")+'</div>';
+  b.insertBefore(box, b.querySelector(".fsec")); $$("[data-att]",box).forEach(x=>x.onclick=()=>{ const a=o.attachments[+x.dataset.att]; if(DL) DL.save({filename:a.name, data:a.content}).catch(()=>copyText(a.content,a.name)); else copyText(a.content,a.name); }); };
+
+/* ======================= THE BYLAWS =======================
+   MISMO's Bylaws (as amended January 20, 2022), in plain words, where they apply. Each page shows an
+   (i) beside its title; Help has them all. */
+const BYLAWS = {
+  board:{t:"The Board of Directors", cite:"Article V, Sections 3 to 6, and 14", pts:[
+    "Up to 20 voting directors, plus a permanent seat MBA fills as it chooses.",
+    "Terms are two years, staggered. No one serves more than two two-year terms in a row without a year off.",
+    "Seats: 8 from residential single-family lenders, 2 from commercial and multifamily, 5 from service providers and vendors supporting residential, 1 from a residential mortgage insurer, 2 from the GSEs (one each), and 1 at-large.",
+    "Directors must work for a MISMO member in good standing and be able to speak for their employer.",
+    "MBA, through its President and CEO, elects the Board each year, considering the Nominating Committee's recommendations.",
+    "A vacancy: the Nominating Committee may recommend a successor, and MBA's President and CEO appoints them for the rest of the term. If a director leaves their member company, or the company drops its membership, the Nominating Committee decides whether they stay to year end.",
+    "The MISMO President and each Committee of the Corporation's chair sit on the Board ex officio, without a vote."]},
+  nomcom:{t:"The Nominating Committee", cite:"Article VI, Section 1", pts:[
+    "Five members: the Board Chair, who chairs it, and four the Chair appoints. One-year terms. Quorum is three.",
+    "Nominates the slate of Directors, and a Chair and Vice-Chair from directors continuing or on the slate.",
+    "Sends the names to MBA at least 30 days before the end of the year (by December 1). Elections HQ flags it if Names to MBA is later.",
+    "Considers leadership, business type, location, company size, diversity and service to the industry and to MISMO; keeps the Board broadly representative and balanced.",
+    "Names the members of the Board's other committees, including the Prioritization Committee."]},
+  prior:{t:"The Prioritization Committee", cite:"Article VI, Section 3", pts:[
+    "Ten members appointed by the Nominating Committee, for one-year terms.",
+    "Recommends MISMO's yearly priorities, and quarterly updates, to the Board, with input from across the industry.",
+    "It replaces the Business Executive Team in the new structure, so it is appointed, not elected."]},
+  goc:{t:"Committees of the Corporation", cite:"Article VII, and Article V, Section 2", pts:[
+    "The Board sets up Committees of the Corporation. The Policies and Procedures (P&Ps) set each one's qualifications, size, terms, how members are chosen and how vacancies are filled.",
+    "A member can be removed by two-thirds of their committee or a majority of the Board, after a hearing. A member can resign in writing to a MISMO officer.",
+    "Each committee recommends one person to the Board as a non-voting ex officio director for a year.",
+    "Worth knowing: the 2022 Bylaws still name the Residential and the Commercial Standards Governance Committees, including their role approving standards. Moving to one Governance Committee means MBA amending the Bylaws (only MBA can, Article XII) and the Board approving the P&P changes."]},
+  leaders:{t:"Leaders of Groups", cite:"Article VII, Section 4", pts:[
+    "The P&Ps set how leaders of committees, work groups and other subgroups are chosen, their terms and how they're removed.",
+    "Leaders aren't officers of MISMO, and the Board can remove a leader by majority vote.",
+    "So the Area of Focus and Business Domain elections follow the P&Ps; update the P&Ps to match the new structure."]},
+  eligible:{t:"Who Can Take Part", cite:"Article IV, Sections 2 and 3", pts:[
+    "Member companies (Class 2 Members) take part through committees, work groups and subgroups.",
+    "Each member company may name one employee as its representative in all membership matters.",
+    "Someone not with a member company may join activities as the P&Ps allow, but may not take part in governance without Board or MBA approval. That's why nominees must work for a member company.",
+    "Anyone taking part is bound by the IPR and antitrust policies (covered at orientation)."]},
+  voting:{t:"One Company, One Vote", cite:"Article IV, Section 2(c); the P&Ps", pts:[
+    "Each member company has one representative for membership matters, which is why each company gets one ballot.",
+    "The MVR and MVA rule (if both vote, the Alternate's ballot is dismissed) and the third-party certification come from the P&Ps and MISMO's practice, not the Bylaws.",
+    "Member companies can't vote on anything that needs MBA's approval as the Class 1 Member."]},
+  certify:{t:"Certifying the Results", cite:"MISMO practice; Article VII, Section 1", pts:[
+    "Each year MBA Legal reviews the Governance Committee results as a third party and confirms the election was fair, before the candidates are called and the results announced.",
+    "Elections HQ drafts the request from the count, with the ballot breakdown and the count attached, and sends it from your address once you press Send.",
+    "The committee's make-up and how members are chosen are set in the P&Ps under Article VII."]}
+};
+const PAGE_BYLAWS = {"Board of Directors":["board","nomcom"], "Governance Committee":["goc","certify"], "Areas of Focus":["leaders","eligible"], "Business Domains":["leaders","eligible"], "Nominations":["eligible"], "Ballots and Results":["voting","certify"], "Structure":["prior","goc","leaders"]};
+function infoBtnRow(keys){ keys=[].concat(keys); return '<span class="bylaw-row">'+keys.map(k=>'<button type="button" class="infob" data-bylaw="'+k+'" title="What the Bylaws say: '+esc(BYLAWS[k].t)+'"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2"/><path d="M10 9v5M10 6.2v.1"/></svg>'+esc(BYLAWS[k].t)+'</button>').join("")+'</span>'; }
+function openBylaw(k){ const b=BYLAWS[k]; if(!b) return;
+  openPane({eye:"MISMO Bylaws · "+b.cit, title:b.t, noDirty:true, noFocus:true,
+    top:'<ul class="imp" style="font-size:14px">'+b.pts.map(p=>'<li style="margin:8px 0;line-height:1.55">'+esc(p)+'</li>').join("")+'</ul><p class="note" style="margin-top:16px">'+esc(b.cite)+'. Bylaws of the Mortgage Industry Standards Maintenance Organization, Inc., as amended January 20, 2022. Plain-words summary; the Bylaws themselves govern.</p>'+
+      '<div class="fsec">Also in the Bylaws</div><div class="bylaw-more">'+Object.keys(BYLAWS).filter(x=>x!==k).map(x=>'<button type="button" class="infob" data-bylaw="'+x+'">'+esc(BYLAWS[x].t)+'</button>').join("")+'</div>' }); }
+Object.keys(BYLAWS).forEach(k=>BYLAWS[k].cit=BYLAWS[k].cite.split(";")[0]);
+const _pheadB = phead;
+phead = function(eyebrow, title, sub, tools){ const h=_pheadB(eyebrow,title,sub,tools); const ks=PAGE_BYLAWS[title]; return ks? h.replace('</h1>','</h1>'+infoBtnRow(ks)) : h; };
+document.addEventListener("click", e=>{ const b=e.target.closest && e.target.closest("[data-bylaw]"); if(!b) return; e.preventDefault(); openBylaw(b.dataset.bylaw); });
+/* Bylaws date rule: names to MBA at least 30 days before year end */
+const _dateIssuesB = dateIssues;
+dateIssues = function(c,dates){ const out=_dateIssuesB(c,dates); if(c.type==="board" && dates.toMBA){ const lim=dates.toMBA.slice(0,4)+"-12-01"; if(dates.toMBA>lim) out.push({k:"toMBA", bad:true, msg:"<b>Names to MBA</b> ("+esc(fLong(dates.toMBA))+") is later than the Bylaws allow: at least 30 days before year end, so by "+esc(fLong(lim))+"."}); } return out; };
+
 /* ================= Start the next election year ================= */
 function openStartYear(){
   const ys=years(); const next=(vals("cycles").length? Math.max(...ys)+1 : today().getFullYear()+1);
@@ -3885,17 +4037,23 @@ async function buildCycle(type,y){
 
 /* ================= Help ================= */
 const HELP=[
-  ["Getting Started","How Elections HQ is laid out",'<p>Each election has its own page: <b>Business Domains</b>, <b>Areas of Focus</b>, the <b>Governance Committee</b> and the <b>Board of Directors</b>. The pages under Running the Elections work across all of them: Nominations, Ballots &amp; Results, the <b>Outbox</b>, Timeline &amp; Tasks, Communications and Onboarding.</p><p>An election year is the year terms begin: the 2027 election year runs nominations and voting in the fall of 2026, and uses 2026 attendance from Meeting Trackers.</p>'],
-  ["Getting Started","The new structure",'<p>Communities of Practice become <b>Areas of Focus</b> (two elected Co-Chairs and a staff facilitator). Development Workgroups become <b>Task Forces</b> (a Lead set by the domain, an optional Co-Lead, a Requestor Sponsor and a facilitator; not elected). Each sits in one of eight <b>Business Domains</b>, which elect a Chair, a Vice Chair and a Care and Feeding Lead. The Council of Chairs is now the Domain Chairs, the Business Executive Team becomes the Board\'s Prioritization Committee, and the Residential and Commercial Standards Governance Committees become the five-person Governance Committee.</p><p>The <b>Structure</b> page shows the chart and checks every group against Meeting Trackers.</p>'],
-  ["Getting Started","Meeting Trackers",'<p>Meeting Trackers is the source of truth for which groups are active. A group archived there gets no seat on the ballot. Each leader\'s attendance (meetings attended of meetings held that year) shows on the Leadership Roster and beside each person serving now.</p><p>Voting in Area of Focus and Domain elections is one vote per member company that took part that year; a ballot from a company Meeting Trackers hasn\'t seen in that group is held for a look.</p>'],
-  ["Getting Started","Starting a new year",'<p>On the Election Year page, press <b>Start the Next Election Year</b>. Dates move forward a year onto the same weekday, tasks are copied with every box unticked, and seats are rebuilt: two Co-Chairs for every Area of Focus still meeting, and three seats for every Business Domain.</p>'],
-  ["Automation","The Outbox",'<p>Elections HQ drafts every email on schedule: the call for nominations, the nominee confirmation, the gaps notice, the last call, ballots, reminders, the one-company notice and the results. Each kind of message is set to <b>I\'ll Send It</b> (it waits in Ready for You until you press <b>Send</b>, twice to be sure), <b>Send Automatically</b> (it goes on its date, weekdays 9 to 5 Eastern) or <b>Don\'t Draft</b>. Everything starts as I\'ll Send It. Either way it goes from elections@mismo.org; drag it back to Ready for You, or press Hold for Me, to stop it before it goes.</p><p>Press <b>Draft Now</b> to read a message before its date.</p>'],
+  ["Getting Started","How Elections HQ is laid out",'<p>Each election has its own page: <b>Business Domains</b>, <b>Areas of Focus</b>, the <b>Governance Committee</b> and the <b>Board of Directors</b>. The pages under Running the Elections work across all of them: Nominations, Ballots and Results, the <b>Outbox</b>, Timeline and Tasks, Communications and Onboarding. Records holds the Structure, the Leadership Roster, Voter Lists and the Public Forms.</p><p>An election year is the year terms begin: the 2027 election year runs nominations and voting in the fall of 2026, and uses 2026 attendance from Meeting Trackers.</p><p>Pages with an <b>(i)</b> beside the title show what MISMO\'s Bylaws say about that election.</p>'],
+  ["Getting Started","The new structure",'<p>Communities of Practice become <b>Areas of Focus</b> (two elected Co-Chairs and a staff facilitator). Development Workgroups become <b>Task Forces</b> (a Lead set by the domain, an optional Co-Lead, a Requestor Sponsor and a facilitator; not elected). Each sits in one of eight <b>Business Domains</b>, which elect a Chair, a Vice Chair and a Care and Feeding Lead. The Council of Chairs is now the Domain Chairs only, the Business Executive Team becomes the Board\'s Prioritization Committee, and from 2027 the Residential and Commercial Standards Governance Committees become one five-person <b>Governance Committee</b>, which confirms the process was followed.</p><p>Groups archived in Meeting Trackers or Higher Logic (Fee Modernization, for one) are marked inactive on the Structure page, so they get no seat, no ballot email and no post.</p>'],
+  ["Getting Started","Starting a new year",'<p>On the Election Year page, press <b>Start the Next Election Year</b>. Dates move forward a year onto the same weekday, tasks are copied with every box unticked, and seats are rebuilt: two Co-Chairs for every Area of Focus still meeting, and three seats for every Business Domain. After that, every date is yours to change.</p>'],
+  ["Getting Started","Changing dates",'<p>Open <b>Dates and Forms</b> on any election, or click a date on its timeline, and move anything, as often as you need. As you type, anything out of order, on a weekend or MISMO holiday, or squeezing nominations or voting too short is flagged.</p><p>When you save, Elections HQ lists what the change touches, each with a tick box, and only what you tick moves: the later steps that would now be out of order, tasks due on the old date, Outbox drafts (their send date and the dates written in them), the same date for the Business Domains or Areas of Focus, and the nomination form\'s open and close dates. Terms Begin and Orientation never move on their own. Emails already sent with the old date are listed so you can send a correction.</p>'],
+  ["How It\'s Connected","Where Elections HQ lives",'<p>Elections HQ runs at <b>resources.mismo.org/elections-hq/</b> with the shared resources.mismo.org sign-in. Who can open it and who can change things is set per person in <b>People &amp; Access</b> (Admin and Staff change anything; View is read-only).</p><ul><li>The page is in the public GitHub repository <b>GitMISMO/elections-hq</b>. It holds no records.</li><li>Every record is in the private repository <b>GitMISMO/elections-hq-data</b>, read and saved through the resources.mismo.org save relay (project <b>elections-hq</b>). Every save is a commit, so there is history.</li><li>What the public forms need (the open seats, and each ballot\'s confirmed nominees) is published to <b>elections-hq/slates/</b> through a second relay project, <b>elections-hq-public</b>, which can write nothing else.</li><li>Elections HQ is listed in <b>assets/tools.json</b> (Planning) and the relay\'s <b>_internal/projects.json</b> in GitMISMO.github.io.</li></ul><p>The copy in Claude is a backup; work in the resources.mismo.org one.</p>'],
+  ["How It\'s Connected","Meeting Trackers",'<p>Meeting Trackers is the source of truth for which groups are active and for attendance. Elections HQ holds a snapshot of every group, the meetings held each year, and each leader\'s attendance, shown on the Leadership Roster and beside each person serving now. A small script in Meeting Trackers can keep it current every day (not switched on yet).</p><p><b>Elected leaders go back to Meeting Trackers.</b> When you apply the results for a Business Domain or Area of Focus, the new Chair, Vice Chair or Co-Chairs are written into Meeting Trackers\' Workgroup Leadership, marked "Elections HQ". Care and Feeding Leads stay in Elections HQ. Anything that couldn\'t be sent waits and can be sent again from the results panel. Whoever applies results needs Meeting Trackers access too.</p><p>Voting in Area of Focus and Domain elections is one vote per member company that took part that year.</p>'],
+  ["How It\'s Connected","The public forms",'<p>Three pages on resources.mismo.org, in the website\'s look (the Home page hero; no menu, search or log in until the new site launches, and the logo and footer links aren\'t linked):</p><ul><li><b>forms/elections/nominate/</b>: anyone can nominate. It reads the open seats from slates/nominate.json and opens and closes itself on the nomination dates.</li><li><b>forms/elections/confirm/</b>: the personal link each nominee gets to say yes or no.</li><li><b>forms/elections/ballot/</b>: the ballot, built from the confirmed nominees once you press Publish for that election.</li></ul><p>Each form posts to its Power Automate flow, which files the entry in elections-hq-data. Change the open and close dates in Dates and Forms; the form follows them.</p>'],
+  ["How It\'s Connected","Power Automate flows",'<p>Four flows connect the forms and the Outbox to the records. Each writes only its own file in elections-hq-data and never changes what it didn\'t write.</p><ul><li><b>Elections Nominations</b>: nomination form entries go to <b>nomsubs</b>; nominee yes or no answers go to <b>responses</b>.</li><li><b>Elections Ballots</b>: every ballot goes to <b>votes</b>. A ballot is never changed; your decisions sit beside it in voteflags.</li><li><b>Elections Outbox</b>: every 5 minutes, it sends what you pressed Send on, and on its date (weekdays 9 to 5 Eastern) anything you set to Send Automatically, then logs it in <b>outsent</b>. Files attached to a message (like the certification count) go with it.</li><li><b>Elections Replies</b> (optional): replies to elections@ land in <b>mailin</b>.</li></ul>'],
+  ["How It\'s Connected","Email addresses",'<ul><li><b>elections@mismo.org</b> is what people see. The mailbox is <b>elections@mba.org</b> (mismo.org is an alias); IT makes elections@mismo.org its primary address so replies come back to it.</li><li><b>Posts to MISMO Connect come from you</b> (jcritchley@mba.org). Higher Logic only accepts an emailed post from a community member, and you\'re a member of every Area of Focus and Task Force. To post as someone else, change it in Outbox, Addresses.</li><li><b>MISMO Connect addresses</b> (MISMO-&hellip;@ConnectedCommunity.org) come from Higher Logic\'s admin Discussions list and are set on the Structure page.</li><li><b>Facilitators</b> are first initial and last name @mismo.org.</li><li><b>MBA Legal</b>, who certifies the results, and the emails to them come from you.</li></ul>'],
+  ["Automation","The Outbox",'<p>Elections HQ drafts every email on schedule: the call for nominations, the facilitator briefs, the nominee confirmation, the gaps notice, the last call, ballots, reminders, the one-company notice, the heads-up and the request to certify for MBA Legal, and the results.</p><p>Each kind of message is set to <b>I\'ll Send It</b> (it waits in Ready for You until you press <b>Send</b>, twice to be sure), <b>Send Automatically</b> (it goes on its date, weekdays 9 to 5 Eastern) or <b>Don\'t Draft</b>. Everything starts as I\'ll Send It. <b>Send All Due</b> sends every draft dated today or earlier, also after a second press. Drag a message back to Ready for You, or press <b>Hold for Me</b>, to stop it before it goes. Each message shows who it\'s from, who it goes to and exactly what they\'ll see, in MISMO\'s branded email look. Press <b>Draft Now</b> to read a message before its date.</p>'],
   ["Automation","Nominee confirmations",'<p>When a nomination is accepted, the nominee gets an email with a personal link to say yes or no. Their answer is logged and the nominee moves to On the Ballot, or to Not Going Ahead, with nothing for you to do. Open a nominee and press <b>Nominee\'s Confirmation</b> to see what they see.</p>'],
-  ["Nominations","How a nomination comes in",'<ol><li>Someone fills in the public nomination form.</li><li>It lands in From the Form on Nominations, flagged if it looks like spam or is already there.</li><li>Drag it to To Confirm (or press Accept). The nominee is emailed to confirm.</li><li>When they say yes, it moves to On the Ballot.</li></ol>'],
-  ["Voting","One company, one vote",'<p>When a company sends more than one ballot for the same group, those ballots are held. The one-company email goes to them automatically; when they answer, press <b>Count This One</b> on the ballot that stands.</p><p>Ballots emailed to info@mismo.org go in with <b>+ Ballot Sent by Email</b> on Ballots &amp; Results.</p>'],
-  ["Results","Final results and the roster",'<ol><li>Settle every ballot on hold.</li><li>For the Governance Committee, send the count for audit and record it.</li><li>Press <b>Mark Results Final</b>. The elected and thank-you emails are drafted.</li><li>Press <b>Apply to the Roster</b>. New leaders are added, outgoing leaders move to Former, and everyone new appears on Onboarding. Domain Chairs appear on the Council of Chairs.</li></ol>'],
-  ["Board","How the Board slate works",'<p>Board members aren\'t voted on by members. The Board page keeps the slate the Board approves: who\'s leaving, who\'s joining, extensions, committee roles (including the Prioritization Committee) and officers.</p>']
-];
+  ["Nominations","How a nomination comes in",'<ol><li>Someone fills in the public nomination form.</li><li>It lands in From the Form on Nominations, flagged if it looks like spam or is already there.</li><li>Drag it to To Confirm (or press Accept). The nominee is emailed to confirm.</li><li>When they say yes, it moves to On the Ballot.</li></ol><p>Nominees must work for a MISMO member company (Bylaws, Article IV).</p>'],
+  ["Voting","One company, one vote",'<p>When a company sends more than one ballot for the same group, those ballots are held. The one-company email goes to them; when they answer, press <b>Count This One</b> on the ballot that stands. For the Governance Committee, if both the MVR and the MVA vote, the Alternate\'s ballot is dismissed.</p><p>Ballots emailed to elections@mismo.org go in with <b>+ Ballot Sent by Email</b> on Ballots and Results.</p>'],
+  ["Results","Certifying the results with MBA Legal",'<p>Every year the Governance Committee results go to MBA Legal, as a third party, to confirm the election was fair.</p><ol><li>When the Call for Vote goes out, a <b>Heads-Up to MBA Legal</b> is drafted with the dates.</li><li>On the audit date, the <b>Request to Certify</b> is drafted from the count: the process with its dates, the ballots received, any company that voted twice and which ballot counted, any tie and how it was settled, and every seat\'s elected and not elected nominees. The ballot breakdown and the count are attached.</li><li>Press <b>Certification</b> on the results to see it, draft it again after settling ballots, and record when it comes back.</li></ol><p>Who certifies (Michael Briggs is leaving) is set in Outbox, Addresses; leave it blank until it\'s decided, and the drafts wait in Needs Attention. These come from your address.</p>'],
+  ["Results","Final results and the roster",'<ol><li>Settle every ballot on hold.</li><li>For the Governance Committee, send the Request to Certify and record it when it\'s back.</li><li>Press <b>Mark Results Final</b>. The elected and thank-you emails are drafted.</li><li>Press <b>Apply to the Roster</b>. New leaders are added, outgoing leaders move to Former, everyone new appears on Onboarding, Domain Chairs appear on the Council of Chairs, and the new leaders are written into Meeting Trackers.</li></ol>'],
+  ["Board","How the Board slate works",'<p>Board members aren\'t voted on by members. The Nominating Committee recommends the slate and MBA\'s President and CEO elects the Board. The Board page keeps the slate: who\'s leaving, who\'s joining, extensions, committee roles (including the Prioritization Committee) and officers. The names go to MBA at least 30 days before year end (by December 1); Elections HQ flags it if that date is later.</p>']
+].concat(Object.keys(BYLAWS).map(k=>["The Bylaws", BYLAWS[k].t, '<ul>'+BYLAWS[k].pts.map(p=>'<li>'+esc(p)+'</li>').join("")+'</ul><p class="note">'+esc(BYLAWS[k].cite)+'. Bylaws of the Mortgage Industry Standards Maintenance Organization, Inc., as amended January 20, 2022. A plain-words summary; the Bylaws themselves govern.</p>']));
 function renderHelp(){
   const el=$("#page-help"); const cur=SUB.help||0;
   const groups=[...new Set(HELP.map(h=>h[0]))];
