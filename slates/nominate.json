@@ -5,10 +5,10 @@
       "type": "domain",
       "name": "2027 Business Domains",
       "open": false,
-      "closes": "2026-11-13",
-      "from": "2026-11-02",
-      "until": "2026-11-13",
-      "mode": "closed",
+      "closes": "2026-11-23",
+      "from": "2026-11-09",
+      "until": "2026-11-23",
+      "mode": "auto",
       "groups": [
         {
           "name": "Close and Fund",
@@ -219,5 +219,5 @@
       ]
     }
   ],
-  "at": "2026-10-30T18:47:53.452Z"
+  "at": "2026-11-05T00:20:45.532Z"
 }
