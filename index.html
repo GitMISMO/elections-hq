@@ -169,81 +169,8 @@
   }
   function ensure(f) { return f.loaded ? Promise.resolve(f) : load(f); }
 
-  /* ---------- saving only what was changed (November 5, 2026) ----------
-     A record panel can sit open for hours. Saving used to write the whole record exactly as
-     the panel had it, and a 409 re-applied that same whole record, so anything someone else
-     saved in the meantime was quietly undone. Now the page can say what the record looked
-     like when the change began (the "base"). Only the fields that differ from it are
-     written, onto the newest copy, at the moment of saving and again after every 409.
-     Every other field keeps its newest value, field by field inside nested parts too
-     (dates, checks). A record someone else deleted in the meantime is not brought back:
-     that change is refused and the page says so. Records nobody touched are never written. */
-  function isPlain(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
-  function sig(v) {                     /* the same text for the same value, whatever the key order */
-    if (Array.isArray(v)) return '[' + v.map(sig).join(',') + ']';
-    if (isPlain(v)) return '{' + Object.keys(v).sort().map(function (k) { return JSON.stringify(k) + ':' + sig(v[k]); }).join(',') + '}';
-    return v === undefined ? 'null' : JSON.stringify(v);
-  }
-  /* "" / null / missing are the same; 5 and "5" are the same; an empty part is the same as none */
-  function normVal(v) {
-    if (v === undefined || v === null || v === '') return '';
-    if (typeof v === 'number' || typeof v === 'boolean') return String(v);
-    if (typeof v === 'string') return v;
-    if (isPlain(v) && !Object.keys(v).length) return '';
-    return sig(v);
-  }
-  function sameVal(a, b) { return normVal(a) === normVal(b); }
-  function mergeDoc(cur, mine, base) {
-    if (!isPlain(cur) || !isPlain(mine) || !isPlain(base)) return clone(mine);
-    var out = clone(cur), keys = {};
-    Object.keys(mine).concat(Object.keys(base)).forEach(function (k) { keys[k] = 1; });
-    Object.keys(keys).forEach(function (k) {
-      var m = mine[k], b = base[k], c = cur[k];
-      if (sameVal(m, b)) {              /* not changed here: the newest value stands */
-        if (!(k in out) && b === undefined && m !== undefined) out[k] = clone(m);   /* a blank nobody had */
-        return;
-      }
-      if (m === undefined) { delete out[k]; return; }
-      if (isPlain(m) && (isPlain(b) || b == null) && (isPlain(c) || c == null)) { out[k] = mergeDoc(c || {}, m, b || {}); return; }
-      out[k] = clone(m);
-    });
-    return out;
-  }
-  /* the fields both people changed, to different values (each a list of keys, for nested parts) */
-  function clashes(cur, mine, base, pre) {
-    var out = [];
-    if (!isPlain(cur) || !isPlain(mine) || !isPlain(base)) return out;
-    var keys = {};
-    Object.keys(mine).concat(Object.keys(base)).forEach(function (k) { keys[k] = 1; });
-    Object.keys(keys).forEach(function (k) {
-      if (!pre && (k === 'updatedAt' || k === 'id')) return;
-      var m = mine[k], b = base[k], c = cur[k], at = (pre || []).concat([k]);
-      if (sameVal(m, b) || sameVal(c, b) || sameVal(c, m)) return;
-      if (isPlain(m) && (isPlain(b) || b == null) && (isPlain(c) || c == null)) { out = out.concat(clashes(c || {}, m, b || {}, at)); return; }
-      out.push(at);
-    });
-    return out;
-  }
-  function getAt(o, at) { for (var i = 0; i < at.length; i++) { if (!isPlain(o)) return undefined; o = o[at[i]]; } return o; }
-  function setAt(o, at, v) {
-    for (var i = 0; i < at.length - 1; i++) { if (!isPlain(o[at[i]])) o[at[i]] = {}; o = o[at[i]]; }
-    if (v === undefined) delete o[at[at.length - 1]]; else o[at[at.length - 1]] = clone(v);
-  }
-  var GONE = 'Someone else deleted this record while it was open here, so this change was not saved.';
-  window.__hqMerge = { merge: mergeDoc, clashes: clashes, sameVal: sameVal, normVal: normVal, sig: sig,
-    getAt: getAt, setAt: setAt, clone: clone, GONE: GONE };
-
-  function applyOps(f, content, ops, sending) {
+  function applyOps(f, content, ops) {
     ops.forEach(function (op) {
-      if (op.kind === 'merge') {        /* only what changed since op.base, onto this copy */
-        var was = f.own ? content.doc : content.docs[op.path];
-        var gone = !!op.base && (was === undefined || was === null);
-        if (sending) op.gone = gone;
-        if (gone) return;
-        var next = op.base ? mergeDoc(was, op.data, op.base) : clone(op.data);
-        if (f.own) content.doc = next; else content.docs[op.path] = next;
-        return;
-      }
       if (f.own) {
         if (op.kind === 'set') content.doc = clone(op.data);
         else if (op.kind === 'update') content.doc = Object.assign({}, content.doc || {}, clone(op.data));
@@ -268,7 +195,7 @@
   }
 
   /* ---------- saving ---------- */
-  function queue(path, kind, data, base) {
+  function queue(path, kind, data) {
     if (PREVIEW) {
       if (now() - previewWarned > 4000) { previewWarned = now(); toast('This is the preview of Elections HQ on resources.mismo.org \u2014 nothing here is saved. Keep using the Claude version until it\u2019s switched on.', 'bad'); }
       return Promise.reject(err('invalid_argument', 'Preview: not saved'));
@@ -277,7 +204,7 @@
     return new Promise(function (res, rej) {
       var go = function () {
         if (kind === 'update' && f.loaded && docIn(f, path) === null) { rej(err('not-found', 'No document to update: ' + path)); return; }
-        f.pending.push({ kind: kind, path: path, data: data, base: base || null, res: res, rej: rej }); f.view = null;
+        f.pending.push({ kind: kind, path: path, data: data, res: res, rej: rej }); f.view = null;
         if (p.own) register(path, kind !== 'delete');
         notify(f, true);
         schedule(f, FLUSH_MS);
@@ -318,13 +245,13 @@
     var batch = f.pending.slice(), tries = 0;
     var attempt = function () {
       return ensure(f).then(function () {
-        var next = applyOps(f, clone(f.server), batch, true);   /* the newest copy, read again after a 409 */
+        var next = applyOps(f, clone(f.server), batch);
         /* the relay saves files pretty-printed and can only read back a file under 1 MB, so the pretty size is what counts */
         if (JSON.stringify(next, null, 2).length > MAX_FILE) throw err('TOO_BIG', 'This part of Elections HQ has grown too big to save in one piece.');
         return put(f.name, { content: next, sha: f.sha }).then(function (b) {
           f.server = next; f.sha = (b && b.sha) || f.sha; f.loadedAt = now();
           f.pending = f.pending.filter(function (op) { return batch.indexOf(op) < 0; }); f.view = null;
-          batch.forEach(function (op) { if (op.gone) op.rej(err('not-found', GONE)); else op.res(); });
+          batch.forEach(function (op) { op.res(); });
           notify(f, false);
           saved();
         });
@@ -449,8 +376,6 @@
       id: p.id, path: path,
       get: function () { return need().then(function () { return docSnap(path, docValue(path), false); }); },
       set: function (data) { return queue(path, 'set', data); },
-      /* writes only what differs from `base` (the record as the change began); see above */
-      merge: function (data, base) { return queue(path, 'merge', clone(data), base ? clone(base) : null); },
       update: function (patch) { return queue(path, 'update', patch); },
       delete: function () { return queue(path, 'delete', null); },
       onSnapshot: function (cb, errCb) {
@@ -909,7 +834,7 @@ main select{max-width:260px}
 .phead .tools{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 .field>label,.flabel{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--ink-3)}
-select,input[type=text],input[type=number],input[type=url],input[type=search].plain,textarea{
+select,input[type=text],input[type=email],input[type=number],input[type=url],input[type=search].plain,textarea{
   background:var(--surface);border:1px solid var(--border-strong);border-radius:5px;padding:7px 10px;color:var(--ink);font-size:13.5px;min-width:0;width:100%}
 textarea{min-height:84px;resize:vertical;line-height:1.5}
 select:focus,input:focus,textarea:focus{outline:2px solid var(--sky);outline-offset:0}
@@ -1719,6 +1644,9 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
     <button type="button" data-hq="board" title="Board of Directors">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="9" width="16" height="7" rx="1.5"/><path d="M7 16v4M17 16v4M8 9V6.5a1.5 1.5 0 011.5-1.5h5A1.5 1.5 0 0116 6.5V9"/></svg>
       <span>Board of Directors</span><b class="nbadge" id="nb-board" hidden></b></button>
+    <button type="button" data-hq="wg" title="Workgroup Elections">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="1.5"/><path d="M8 10V5.5A1.5 1.5 0 019.5 4h5A1.5 1.5 0 0116 5.5V10M9.5 7.5l1.7 1.7 3.3-3.3"/></svg>
+      <span>Workgroup Elections</span><b class="nbadge" id="nb-wg" hidden></b></button>
     <div class="navsep">Running the Elections</div>
     <button type="button" data-hq="noms" title="Nominations">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13l3-8h12l3 8v6a1 1 0 01-1 1H4a1 1 0 01-1-1z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/></svg>
@@ -1776,6 +1704,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
   <section class="page" id="page-aof" hidden></section>
   <section class="page" id="page-goc" hidden></section>
   <section class="page" id="page-board" hidden></section>
+  <section class="page" id="page-wg" hidden></section>
   <section class="page" id="page-outbox" hidden></section>
   <section class="page" id="page-noms" hidden></section>
   <section class="page" id="page-ballots" hidden></section>
@@ -1878,7 +1807,7 @@ var EF = (function(){
 
   function ballot(el, cfg){
     var sl=cfg.slate; var started=Date.now(); var GL=sl&&sl.type==="domain"?"Business Domain":"Area of Focus";
-    var hero='<div class="ef-hero"><small>MISMO Elections · '+e(sl?sl.year:"")+'</small><h2>'+e(sl?sl.name:"Ballot")+'</h2><p>'+(sl&&sl.type==="domain"?'One ballot per company, covering all eight Business Domains, cast by your MISMO Voting Representative (MVR)':'One ballot per company'+(sl&&sl.type==="aof"?' in each Area of Focus':''))+'. '+(sl&&sl.closes?'Voting closes '+e(fmt(sl.closes))+'.':'')+'</p></div>';
+    var hero='<div class="ef-hero"><small>MISMO Elections · '+e(sl?sl.year:"")+'</small><h2>'+e(sl?sl.name:"Ballot")+'</h2><p>'+(sl&&sl.type==="domain"?'One ballot per company, covering all eight Business Domains, cast by your MISMO Voting Representative (MVR)':'One ballot per company'+(sl&&sl.type==="aof"?' in each Area of Focus':''))+'. '+(sl&&sl.closesLabel?'Voting closes '+e(sl.closesLabel)+'.':sl&&sl.closes?'Voting closes '+e(fmt(sl.closes))+'.':'')+'</p></div>';
     if(!sl || cfg.closed){ el.innerHTML='<div class="ef">'+hero+'<div class="closed"><b>This ballot isn\'t open right now.</b><br>Questions? Write to elections@mismo.org.</div></div>'; return; }
     var allIn=sl.type==="domain"; var multi=!allIn && sl.groups.length>1;
     var ALL=allIn? {name:"All Business Domains", seats:[].concat.apply([],sl.groups.map(function(g){ return g.seats.map(function(s){ var o={}; for(var k in s) o[k]=s[k]; o.position=g.name+": "+s.position; return o; }); }))} : null;
@@ -2113,8 +2042,6 @@ async function connect(){
   Object.keys(S).forEach(col=>{
     DB.collection(col).onSnapshot(snap=>{
       const o={}; snap.docs.forEach(d=>{ o[d.id]=Object.assign({id:d.id}, d.data()); });
-      /* a second copy, never changed by the page, to tell later what a save actually changed (November 5, 2026) */
-      if(col!=="audience"){ const seen={}; snap.docs.forEach(d=>{ seen[d.id]=Object.assign({id:d.id}, d.data()); }); SEEN[col]=seen; }
       S[col]=o; LOADED.add(col); schedule();
     }, err=>{ saveNote(false, err && err.message); });
   });
@@ -2126,50 +2053,15 @@ function saveNote(ok, why){
   n.innerHTML = ok ? '<b>Saving</b><span class="ok">Shared with the team · saves as you press Save</span>'
                    : '<b>Saving</b><span class="no">'+esc(why||"Not connected · changes won't be kept")+'</span>';
 }
-/* Saving without overwriting anyone (November 5, 2026). The right-hand panel can sit open
-   for hours, and its Save used to write the whole record as the panel had it, so anything a
-   teammate saved in the meantime was quietly put back. Now every save also carries the record
-   as it was when the change began: as it was when the panel opened, or the newest copy for a
-   quick change made anywhere else. Only what differs from that is written, onto the newest
-   copy, here and in the data store (where it is done again after a 409). If both people
-   changed the same field, the person saving is asked which to keep, and an open panel says so
-   when someone else saves the same record. SEEN holds each record exactly as last read. */
-const SEEN = {};
-function noId(r){ const o=Object.assign({}, r); delete o.id; return o; }
-function baseOf(col,id){
-  const k=col+"/"+id;
-  if(PANE && PANE.at){ if(k in PANE.at.over) return PANE.at.over[k]; const c=PANE.at.cols[col]; if(c && c[id]) return c[id]; }
-  return SEEN[col] ? SEEN[col][id] : undefined;
-}
-function askClash(cl, theirs, mine){
-  const M=window.__hqMerge, title=(($("#pane-title")||{}).textContent||"").trim();
-  const label=at=>{ const lb=document.querySelector('label[for="f-'+at[0]+'"]');
-    return (lb ? lb.textContent.trim() : at[0].replace(/^d_/,"").replace(/([A-Z])/g," $1").replace(/^./,c=>c.toUpperCase())) + (at.length>1 ? " › "+at.slice(1).join(" › ") : ""); };
-  const show=v=>{ const t=M.normVal(v).replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim(); return t==="" ? "(blank)" : t.slice(0,80); };
-  return window.confirm("While you had "+(title||"this record")+" open, someone else saved a different value in the same "+(cl.length===1?"field":"fields")+":\n\n"+
-    cl.map(at=>"• "+label(at)+" — theirs: "+show(M.getAt(theirs,at))+"   ·   yours: "+show(M.getAt(mine,at))).join("\n")+
-    "\n\nOK keeps yours. Cancel keeps theirs for "+(cl.length===1?"this field":"these fields")+" — your other changes still save.");
-}
 async function put(col,id,data){
   const clean = Object.assign({}, data); delete clean.id;
   clean.updatedAt = new Date().toISOString();
-  const M=window.__hqMerge, k=col+"/"+id, was=baseOf(col,id), now=SEEN[col] && SEEN[col][id];
-  const base = (DB && M && was) ? M.clone(noId(was)) : null;   // a copy: Cancel below edits it
-  if(base && !now && LOADED.has(col)){ toast(M.GONE, 6000); throw new Error(M.GONE); }
-  let out = clean;
-  if(base && now){
-    const cur=noId(now), cl=M.clashes(cur, clean, base);
-    if(cl.length && !askClash(cl, cur, clean)) cl.forEach(at=>M.setAt(base, at, M.getAt(clean, at)));   // Cancel: theirs stands
-    out = M.merge(cur, clean, base);
-  }
-  S[col][id] = Object.assign({id}, out); schedule();
-  if(PANE && PANE.at) PANE.at.over[k] = Object.assign({id}, M ? M.clone(out) : out);   // the panel's new starting point
-  if(DB){ try{ const ref=DB.collection(col).doc(id); await (base && ref.merge ? ref.merge(clean, base) : ref.set(base ? out : clean)); }catch(e){ toast("Couldn't save: "+(e.message||e.code||"try again"), 4000); throw e; } }
+  S[col][id] = Object.assign({id}, clean); schedule();
+  if(DB){ try{ await DB.collection(col).doc(id).set(clean); }catch(e){ toast("Couldn't save: "+(e.message||e.code||"try again"), 4000); throw e; } }
 }
 async function patch(col,id,part){ const cur=S[col][id]||{}; return put(col,id,Object.assign({},cur,part)); }
 async function remove(col,id){
   delete S[col][id]; schedule();
-  if(PANE && PANE.at) PANE.at.over[col+"/"+id] = undefined;   // gone on purpose: a later save here starts fresh
   if(DB){ try{ await DB.collection(col).doc(id).delete(); }catch(e){ toast("Couldn't delete: "+(e.message||"try again"),4000); } }
 }
 let _raf=0; function schedule(){ if(_raf) return; _raf=requestAnimationFrame(()=>{ _raf=0; renderAll(); }); }
@@ -2296,10 +2188,6 @@ function winnersOf(c, s, t){
 let PANE = null;
 function openPane(cfg){
   PANE = Object.assign({dirty:false}, cfg);
-  /* what every record looked like as this panel opened, and which record it is (November 5, 2026) */
-  PANE.at = {cols:Object.assign({}, SEEN), over:{}};
-  const did = cfg.data && cfg.data.id;
-  if(did) for(const c of Object.keys(SEEN)){ if(SEEN[c] && SEEN[c][did]){ PANE.rec = {col:c, id:did}; break; } }
   $("#pane-eye").textContent = cfg.eye||"";
   $("#pane-title").textContent = cfg.title||"";
   const b=$("#pane-body"); b.innerHTML = (cfg.top||"") + buildFields(cfg.fields, cfg.data||{}) + (cfg.extra||"");
@@ -2319,17 +2207,6 @@ function openPane(cfg){
   b.scrollTop=0;
   setTimeout(()=>{ const first=b.querySelector("input:not([type=checkbox]):not([type=radio]),textarea,select"); if(first && !cfg.noFocus) try{ first.focus({preventScroll:true}); }catch(e){} },230);
 }
-/* an open panel says so when someone else saves, or deletes, the same record (November 5, 2026) */
-setInterval(()=>{
-  if(!PANE || !PANE.rec || !PANE.at || !window.__hqMerge) return;
-  const {col,id}=PANE.rec, opened=baseOf(col,id), latest=SEEN[col] && SEEN[col][id], M=window.__hqMerge;
-  if(!opened || !LOADED.has(col)) return;
-  const said = latest ? M.sig(latest) : "gone";
-  if((latest && said===M.sig(opened)) || PANE.staleSaid===said) return;
-  PANE.staleSaid = said;
-  const m=$("#pf-msg"); if(m) m.textContent = latest ? "Someone else just saved this record. Saving keeps their changes and adds yours."
-    : "Someone else just deleted this record. Saving won't bring it back.";
-}, 3000);
 function closePane(force){
   if(PANE && PANE.dirty && !force){ const m=$("#pf-msg"); if(m && !m.dataset.warned){ m.dataset.warned="1"; m.textContent="You have changes that aren't saved. Press Close again to leave without saving."; return; } }
   PANE=null; const p=$("#pane"); p.classList.remove("open"); p.setAttribute("aria-hidden","true");
@@ -4357,6 +4234,187 @@ voteStatus = function(c){
   return out;
 };
 
+/* ======================= WORKGROUP ELECTIONS (November 6, 2026) =======================
+   Leadership elections a Development Workgroup or Community of Practice asks for outside the
+   yearly cycle (for example the eNote Master Control Agreement DWG). Each request is its own
+   election: type "wg", id "wg-<group>-<ballot opens>". Staff fill in a Request an Election form;
+   Elections HQ publishes the online ballot, drafts the Call for Vote and the reminder in the
+   Outbox, counts one vote per member company, and puts the winners on the roster. */
+TYPES.wg = {key:"wg", name:"Workgroup Elections", short:"Workgroup", seatWord:"Seat",
+  desc:"Leadership elections a Development Workgroup or Community of Practice asks for, outside the yearly cycle. One vote per member company in the group; ballots online or emailed to info@mismo.org."};
+["Co-Vice Chair","Lead","Co-Lead"].forEach(p=>{ if(!POSITIONS.includes(p)) POSITIONS.push(p); });
+POS_AB["Co-Vice Chair"]="CV"; POS_AB["Lead"]="LD"; POS_AB["Co-Lead"]="CL";
+const WG_POS = ["Chair","Vice Chair","Co-Chair","Co-Vice Chair","Lead","Co-Lead"];
+const WG_TIMES = [["12:00","Noon Eastern"],["17:00","5 p.m. Eastern"],["23:59","Midnight Eastern"]];
+const wgList = ()=>vals("cycles").filter(c=>c.type==="wg").sort((a,b)=>(cdate(b,"ballotOpen")||"").localeCompare(cdate(a,"ballotOpen")||""));
+const wgTimeLabel = c=>((WG_TIMES.find(t=>t[0]===(c.closeTime||"12:00"))||WG_TIMES[0])[1]).replace(" Eastern"," ET").replace(/^Noon/,"noon");
+/* the moment voting closes, as an ISO time (Eastern, daylight saving handled) */
+function wgClosesAt(c){ const d=cdate(c,"ballotClose"); if(!d) return ""; const tm=c.closeTime||"12:00";
+  const guess=new Date(d+"T"+tm+":00Z");
+  const p=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour12:false,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).formatToParts(guess).reduce((o,x)=>(o[x.type]=x.value,o),{});
+  const asNY=Date.UTC(+p.year,+p.month-1,+p.day,+(p.hour==="24"?0:p.hour),+p.minute); const off=asNY-guess.getTime();
+  return new Date(guess.getTime()-off).toISOString(); }
+function wgStage(c){
+  if(c.applied) return ["On the Roster","ok"]; if(c.final) return ["Results Final","ok"];
+  const now=Date.now(), open=cdate(c,"ballotOpen"), ca=wgClosesAt(c);
+  if(ca && now>Date.parse(ca)) return ["Voting Closed","review"];
+  if(open && T()>=open) return ["Voting Now","sky"];
+  return ["Ballot Opens "+fS(open),"k"];
+}
+const wgBallotLink = c=>FORM_BASE+"ballot/?e="+c.id;
+function wgSlate(c){ const sl=slateOf(c); return sl; }
+const _slateOfWG = slateOf;
+slateOf = function(c){
+  if(!c || c.type!=="wg") return _slateOfWG(c);
+  const ss=seatsOf(c).sort((a,b)=>POSITIONS.indexOf(a.position)-POSITIONS.indexOf(b.position));
+  return {cycle:c.id, type:"wg", year:c.year, name:c.group+" Leadership Election", announce:cdate(c,"announce"), opens:cdate(c,"ballotOpen"), closes:cdate(c,"ballotClose"),
+    closesAt:wgClosesAt(c), closesLabel:fLong(cdate(c,"ballotClose"))+" at "+wgTimeLabel(c).replace(" ET"," Eastern"), mode:(c.forms||{}).ballot||"auto",
+    groups:[{name:c.group, seats:ss.map(s=>({id:s.id, position:s.position, count:+s.count||1, nominees:onBallot(s.id).map(n=>({id:n.id, name:fullName(n), company:n.company||"", title:n.title||"", statement:n.statement||""}))}))}]};
+};
+/* the Outbox: dates line and the results roll for these elections */
+const _datesForWG = datesFor;
+datesFor = function(c){ if(!c || c.type!=="wg") return _datesForWG(c); return [["Voting",fLong(cdate(c,"ballotOpen"))+" to "+fLong(cdate(c,"ballotClose"))+" at "+wgTimeLabel(c)]]; };
+/* the winners go on the roster under the group itself, starting when voting closes */
+const _applyResultsWG = applyResults;
+applyResults = async function(c){
+  if(!c || c.type!=="wg") return _applyResultsWG(c);
+  const res=c.results||{}; let n=0; const start=cdate(c,"ballotClose")||T(); const gt=c.gtype||"dwg";
+  for(const s of seatsOf(c)){ for(const nid of ((res[s.id]||{}).winners||[])){ const x=S.nominations[nid]; if(!x) continue; const nm=fullName(x);
+    const ex=vals("leaders").find(l=>l.status!=="former" && l.group===c.group && norm(l.name)===norm(nm));
+    await put("leaders",ex?ex.id:uid("l"),Object.assign({},ex||{},{group:c.group, gtype:gt, position:s.position, name:nm, company:x.company||"", email:x.email||"", termStart:start, termEnd:ex?ex.termEnd||"":"", status:"active", fromCycle:c.id})); n++; } }
+  await patch("cycles",c.id,{applied:true, appliedAt:new Date().toISOString()});
+  toast(plural(n,"leader")+" on the roster");
+};
+
+/* the message text */
+function wgSlateText(c){ return seatsOf(c).sort((a,b)=>POSITIONS.indexOf(a.position)-POSITIONS.indexOf(b.position)).map(s=>{ const ns=onBallot(s.id);
+  return s.position+((+s.count||1)>1?" (elect "+s.count+")":"")+": "+(ns.length?ns.map(n=>fullName(n)+(n.company?", "+n.company:"")).join("; "):"no nominee"); }).join("\n"); }
+function wgDrafts(c){
+  const to=[]; if(c.connectEmail) to.push({name:c.group+" on MISMO Connect", email:c.connectEmail});
+  const close=fLong(cdate(c,"ballotClose"))+" at "+wgTimeLabel(c).replace(" ET"," Eastern"); const em=c.emailTo||"info@mismo.org";
+  return [
+    {id:c.id+"__ballot", rule:"wg.ballot", ruleLabel:"Call for Vote", sendAfter:cdate(c,"ballotOpen"), to,
+     subject:"Vote now: "+c.group+" leadership election",
+     body:"Hello "+c.group+" members,\n\nIt's time to elect the "+c.group+"'s leaders. On the ballot:\n\n"+wgSlateText(c)+"\n\nPlease vote by "+close+": "+wgBallotLink(c)+"\n\nEach MISMO member company taking part in the "+c.group+" has one vote. If you can't use the online ballot, email your company's vote to "+em+".\n\nThank you,\nMISMO"},
+    {id:c.id+"__voteReminder", rule:"wg.voteReminder", ruleLabel:"Reminder to Vote", sendAfter:add(cdate(c,"ballotClose"),-1), to,
+     subject:"Reminder: "+c.group+" voting closes "+fS(cdate(c,"ballotClose"))+" at "+wgTimeLabel(c),
+     body:"Hello "+c.group+" members,\n\nA reminder that voting for the "+c.group+"'s leaders closes "+close+".\n\nVote here: "+wgBallotLink(c)+"\n\nOne vote per MISMO member company. Ballots can also be emailed to "+em+".\n\nThank you,\nMISMO"}];
+}
+async function wgSyncDrafts(c){
+  for(const o of wgDrafts(c)){ const cur=S.outbox[o.id]; if(cur && !["draft","scheduled"].includes(cur.status)) continue; if(S.outsent[o.id]) continue;
+    await putOut(o.id,Object.assign({},cur||{},o,{cycle:c.id, status:(cur&&cur.status)||"draft", createdAt:(cur&&cur.createdAt)||new Date().toISOString(), auto:false, to:(cur&&(cur.to||[]).length&&!o.to.length)?cur.to:o.to})); }
+}
+async function wgShareResults(c){
+  const t=tally(c); const lines=seatsOf(c).sort((a,b)=>POSITIONS.indexOf(a.position)-POSITIONS.indexOf(b.position)).map(s=>{ const w=winnersOf(c,s,t); return s.position+": "+(w.ids.map(i=>{ const n=S.nominations[i]||{}; return fullName(n)+(n.company?", "+n.company:""); }).join("; ")||"no one elected"); }).join("\n");
+  const to=[]; if(c.connectEmail) to.push({name:c.group+" on MISMO Connect", email:c.connectEmail});
+  const id=c.id+"__results";
+  await putOut(id,{cycle:c.id, rule:"wg.results", ruleLabel:"Results", status:"draft", createdAt:new Date().toISOString(), sendAfter:T(), auto:false, to,
+    subject:"The "+c.group+"'s new leaders", body:"Hello "+c.group+" members,\n\nThank you for voting. Your new leaders are:\n\n"+lines+"\n\nPlease join us in congratulating them.\n\nThank you,\nMISMO"});
+  toast("Results email is in the Outbox, ready for you");
+}
+
+/* ---------- Request an Election (or edit one) ---------- */
+function wgNomRow(n){ n=n||{};
+  return '<div class="wgrow" style="display:grid;grid-template-columns:150px minmax(0,1.1fr) minmax(0,1.1fr) minmax(0,1.2fr) auto auto;gap:6px;align-items:center;margin-bottom:6px">'+
+    '<select data-w="position">'+WG_POS.map(p=>'<option'+(p===(n.position||"Chair")?" selected":"")+'>'+p+'</option>').join("")+'</select>'+
+    '<input type="text" data-w="name" placeholder="Name" value="'+esc(n.name||"")+'"><input type="text" data-w="company" placeholder="Company" value="'+esc(n.company||"")+'">'+
+    '<input type="text" data-w="email" placeholder="Email (optional)" value="'+esc(n.email||"")+'">'+
+    '<label class="note" style="white-space:nowrap;display:flex;gap:4px;align-items:center"><input type="checkbox" data-w="member"'+(n.member!==false?" checked":"")+'> Member</label>'+
+    '<button class="btn sm" type="button" data-wdel aria-label="Remove this nominee">Remove</button></div>'; }
+function wgCountsHtml(rows, counts){ const ps=[...new Set(rows.map(r=>r.position))].sort((a,b)=>POSITIONS.indexOf(a)-POSITIONS.indexOf(b));
+  return ps.length? ps.map(p=>{ const k=rows.filter(r=>r.position===p).length; const v=counts[p]!=null?counts[p]:(/^Co-/.test(p)?Math.min(2,k):1);
+    return '<label style="display:flex;gap:8px;align-items:center;margin:0 14px 6px 0"><span>'+esc(p)+': elect</span><input type="number" min="1" max="9" data-wc="'+esc(p)+'" value="'+v+'" style="width:64px"></label>'; }).join("") : '<span class="note">Add a nominee first.</span>'; }
+function wgReadRows(b){ return $$(".wgrow",b).map(r=>{ const g=k=>r.querySelector('[data-w="'+k+'"]'); return {position:g("position").value, name:g("name").value.trim(), company:g("company").value.trim(), email:g("email").value.trim(), member:g("member").checked}; }).filter(r=>r.name); }
+function nextMonday(){ let d=add(T(),1); while(P(d).getDay()!==1) d=add(d,1); return d; }
+function openWGRequest(id){
+  const c=id?S.cycles[id]:null; const me=(()=>{ try{ const cu=window.ResourcesSession&&window.ResourcesSession.current&&window.ResourcesSession.current(); return (cu&&cu.name)||""; }catch(e){ return ""; } })();
+  const open=c?cdate(c,"ballotOpen"):nextMonday();
+  const d=c? {group:c.group, facilitator:c.facilitator||"", connectEmail:c.connectEmail||"", requestedBy:c.requestedBy||"", requestedOn:c.requestedOn||"", ballotOpen:open, ballotClose:cdate(c,"ballotClose"), closeTime:c.closeTime||"12:00", emailTo:c.emailTo||"info@mismo.org", notes:c.notes||""}
+          : {requestedBy:me, requestedOn:T(), ballotOpen:open, ballotClose:add(open,4), closeTime:"12:00", emailTo:"info@mismo.org"};
+  const rows=c? seatsOf(c).flatMap(s=>nomsOf(s.id).filter(n=>!["withdrawn","declined"].includes(n.status)).map(n=>({id:n.id, position:s.position, name:fullName(n), company:n.company||"", email:n.email||"", member:n.member!=="no"}))) : [{}];
+  const counts={}; if(c) seatsOf(c).forEach(s=>counts[s.position]=+s.count||1);
+  const names=[...new Set(vals("groups").map(g=>g.name).concat(vals("mt").filter(m=>!m.archived).map(m=>m.name)))].sort(byName);
+  openPane({eye:"Workgroup Elections", title:c?c.group:"Request an Election", data:d,
+    top:'<datalist id="wg-groups">'+names.map(n=>'<option value="'+esc(n)+'">').join("")+'</datalist>'+(c?'':'<p class="note" style="margin:0 0 12px">For a Development Workgroup or Community of Practice electing leaders outside the yearly cycle. Saving sets up the online ballot and puts the Call for Vote and a reminder in the Outbox for you to send.</p>'),
+    fields:[{sec:"The Group"},{k:"group",label:"Group",list:"wg-groups",ph:"e.g. eNote Master Control Agreement DWG"},{k:"facilitator",label:"Facilitator",type:"select",blank:true,opts:facilitators().concat(["Perry Williams"]).filter((x,i,a)=>a.indexOf(x)===i).sort(byName)},
+      {k:"requestedBy",label:"Requested By"},{k:"requestedOn",label:"Requested On",type:"date"},
+      {k:"connectEmail",label:"Group's MISMO Connect Email",wide:true,hint:"Where the Call for Vote and the reminder go. You can also add it in the Outbox."},
+      {sec:"Voting"},{k:"ballotOpen",label:"Ballot Opens",type:"date"},{k:"ballotClose",label:"Ballot Closes",type:"date"},{k:"closeTime",label:"Closes At",type:"select",opts:WG_TIMES},{k:"emailTo",label:"Ballots Can Also Be Emailed To"},
+      {sec:"Nominees"},{k:"noms",type:"html",html:()=>'<div id="wg-rows">'+rows.map(wgNomRow).join("")+'</div><button class="btn sm" type="button" id="wg-addrow">+ Nominee</button><div class="fsec" style="margin-top:14px">How Many to Elect</div><div id="wg-counts" style="display:flex;flex-wrap:wrap">'+wgCountsHtml(rows.filter(r=>r.name),counts)+'</div>'},
+      {k:"notes",label:"Notes",type:"textarea",rows:2}],
+    after:b=>{ const box=$("#wg-rows",b);
+      const redraw=()=>{ const cur={}; $$("[data-wc]",b).forEach(i=>cur[i.dataset.wc]=+i.value||1); $("#wg-counts",b).innerHTML=wgCountsHtml(wgReadRows(b),Object.assign({},counts,cur)); };
+      const wire=()=>{ $$("[data-wdel]",box).forEach(x=>x.onclick=()=>{ x.closest(".wgrow").remove(); redraw(); }); $$('[data-w="position"],[data-w="name"]',box).forEach(x=>x.onchange=redraw); };
+      $("#wg-addrow",b).onclick=()=>{ box.insertAdjacentHTML("beforeend",wgNomRow({})); wire(); }; wire(); },
+    save:async v=>{ const b=$("#pane-body"); const rs=wgReadRows(b);
+      if(!v.group) throw new Error("Add the group."); if(!v.ballotOpen||!v.ballotClose) throw new Error("Add the voting dates."); if(v.ballotClose<v.ballotOpen) throw new Error("The ballot closes before it opens.");
+      if(!rs.length) throw new Error("Add at least one nominee.");
+      const cnt={}; $$("[data-wc]",b).forEach(i=>cnt[i.dataset.wc]=Math.max(1,+i.value||1));
+      const cid=c?c.id:"wg-"+slugify(v.group)+"-"+v.ballotOpen; const mt=vals("mt").find(m=>m.name===v.group); const gp=groupByName(v.group);
+      const gtype=(gp&&gp.type)||(mt&&/community/i.test(mt.type||"")?"cop":"dwg");
+      await put("cycles",cid,Object.assign({},c||{},{type:"wg", year:+v.ballotOpen.slice(0,4), group:v.group, gtype, facilitator:v.facilitator, connectEmail:v.connectEmail, requestedBy:v.requestedBy, requestedOn:v.requestedOn,
+        closeTime:v.closeTime, emailTo:v.emailTo||"info@mismo.org", notes:v.notes, forms:{ballot:"auto"}, dates:Object.assign({},(c&&c.dates)||{},{ballotOpen:v.ballotOpen, ballotClose:v.ballotClose, announce:(c&&cdate(c,"announce"))||add(v.ballotClose,3)})}));
+      /* seats, one per position */
+      const ps=[...new Set(rs.map(r=>r.position))]; const keepS=new Set();
+      for(const p of ps){ const sid=cid+"__"+slugify(p); keepS.add(sid); await put("seats",sid,Object.assign({},S.seats[sid]||{},{cycle:cid, group:v.group, position:p, count:cnt[p]||1, order:POSITIONS.indexOf(p), round:1, termYears:1})); }
+      for(const s of vals("seats").filter(s=>s.cycle===cid && !keepS.has(s.id))) await remove("seats",s.id);
+      /* nominees, already accepted by the group */
+      const keepN=new Set(); const old=vals("nominations").filter(n=>n.cycle===cid);
+      for(const r of rs){ const sid=cid+"__"+slugify(r.position); const ex=old.find(n=>norm(fullName(n))===norm(r.name) && !keepN.has(n.id)); const nid=ex?ex.id:uid("n"); keepN.add(nid);
+        const parts=r.name.split(/\s+/); await put("nominations",nid,Object.assign({},ex||{},{cycle:cid, seat:sid, status:"confirmed", aware:"yes", source:"request", first:parts.slice(0,-1).join(" ")||parts[0], last:parts.length>1?parts[parts.length-1]:"", email:r.email, company:r.company, member:r.member?"yes":"no", receivedAt:(ex&&ex.receivedAt)||new Date().toISOString()})); }
+      for(const n of old.filter(n=>!keepN.has(n.id))) await remove("nominations",n.id);
+      const cy=S.cycles[cid]; await wgSyncDrafts(cy); await publishSlate(cy); },
+    savedMsg:c?"Saved · ballot and Outbox drafts updated":"Election set up · ballot published and drafts in the Outbox",
+    del:c?async()=>{ for(const s of vals("seats").filter(s=>s.cycle===c.id)) await remove("seats",s.id); for(const n of vals("nominations").filter(n=>n.cycle===c.id)) await remove("nominations",n.id);
+      for(const o of vals("outbox").filter(o=>o.cycle===c.id && ["draft","scheduled"].includes(o.status))) await remove("outbox",o.id); await remove("cycles",c.id); }:null, delLabel:"Delete", delDone:"Election deleted"});
+}
+function openWGBallots(c){
+  const vs=votesOf(c).slice().reverse(); const st=voteStatus(c);
+  openPane({eye:"Ballots · "+c.group, title:plural(vs.length,"Ballot"), data:{}, noFocus:true, noDirty:true,
+    extra:'<div class="tw"><table class="t"><thead><tr><th>Received</th><th>Voter</th><th>Company</th><th>Status</th><th></th></tr></thead><tbody>'+
+      (vs.length? vs.map(v=>{ const s=st[v.id]||{}; return '<tr class="click" data-wv="'+esc(v.id)+'"><td>'+esc(fS((v.submittedAt||"").slice(0,10)))+'</td><td><b>'+esc(fullName(v.voter||{}))+'</b><span class="t2">'+esc((v.voter||{}).email||"")+(v.source==="email"?" · by email":"")+'</span></td><td>'+esc((v.voter||{}).company||"")+'</td><td>'+chip(VSTAT,s.k||"counted")+' <span class="note">'+esc(s.why||"")+'</span></td><td>'+(s.k==="hold"?'<button class="btn sm" type="button" data-wkeep="'+esc(v.id)+'">Count This One</button>':'')+'</td></tr>'; }).join("")
+        : '<tr><td colspan="5" class="note">No ballots yet.</td></tr>')+'</tbody></table></div>',
+    after:b=>{ $$("[data-wv]",b).forEach(r=>r.onclick=e=>{ if(e.target.closest("[data-wkeep]")) return; openVote(r.dataset.wv,c); });
+      $$("[data-wkeep]",b).forEach(x=>x.onclick=async()=>{ await put("voteflags",x.dataset.wkeep,{status:"counted", reason:"Chosen for its company", at:new Date().toISOString()}); toast("Counted; the company's other ballots are set aside"); openWGBallots(S.cycles[c.id]); }); }});
+}
+
+/* ---------- the page ---------- */
+function renderWG(){
+  const el=$("#page-wg"); const list=wgList(); const st=c=>wgStage(c)[0];
+  const live=list.filter(c=>st(c)==="Voting Now"), soon=list.filter(c=>/^Ballot Opens/.test(st(c))), closed=list.filter(c=>st(c)==="Voting Closed");
+  el.innerHTML=phead("Elections","Workgroup Elections","Leadership elections a Development Workgroup or Community of Practice asks for, outside the yearly cycle. One vote per member company in the group.",'<button class="btn pri" type="button" id="wg-new">Request an Election</button>')+
+    band(fL(T()), tile(live.length,"Voting Now","ballot open")+tile(soon.length,"Coming Up","ballot not open yet")+tile(closed.length,"To Count","voting closed, results not final",{hot:closed.length>0})+tile(list.filter(c=>c.final).length,"Done","results final"))+
+    (list.length? list.map(c=>{ const [sl,sk]=wgStage(c); const ss=seatsOf(c).sort((a,b)=>POSITIONS.indexOf(a.position)-POSITIONS.indexOf(b.position)); const vs=votesOf(c); const t=tally(c);
+      const started=T()>=cdate(c,"ballotOpen"); const ob=S.outbox[c.id+"__ballot"];
+      return '<div class="card wgcard" data-wg="'+esc(c.id)+'" style="margin-bottom:16px"><div class="ch"><h2>'+esc(c.group)+'</h2><span class="chip '+sk+'">'+esc(sl)+'</span><span class="note">Voting '+esc(fS(cdate(c,"ballotOpen")))+' to '+esc(fS(cdate(c,"ballotClose")))+' at '+esc(wgTimeLabel(c))+(c.requestedBy?' · requested by '+esc(c.requestedBy)+(c.requestedOn?' on '+esc(fS(c.requestedOn)):''):'')+'</span>'+
+        '<div class="r"><button class="btn sm" type="button" data-wedit>Edit</button><button class="btn sm" type="button" data-wprev>Preview Ballot</button><button class="btn sm" type="button" data-wlink>Copy Ballot Link</button><button class="btn sm" type="button" data-wemail>+ Ballot Sent by Email</button><button class="btn sm" type="button" data-wbal>Ballots ('+vs.length+')</button></div></div>'+
+        '<div class="cb"><div class="cgrid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">'+ss.map(s=>{ const ns=onBallot(s.id); const w=winnersOf(c,s,t);
+          return '<div class="rcard"><h3>'+esc(s.position)+' <span class="note">'+((+s.count||1)>1?"elect "+s.count:"elect one")+'</span>'+(started?'<button class="btn sm" type="button" data-win="'+esc(s.id)+'" style="margin-left:auto">Set Winner</button>':'')+'</h3>'+
+            (ns.length? '<div class="tally">'+ns.map(n=>{ const v=(t[s.id]||{})[n.id]||0; return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:6px 0;border-top:1px solid var(--border)"><span><b'+(started&&vs.length&&w.ids.includes(n.id)?' style="color:var(--good)"':'')+'>'+esc(fullName(n))+'</b><small style="display:block;color:var(--ink-2)">'+esc(n.company||"")+(n.member==="no"?" · not a MISMO member":"")+'</small></span><span class="note" style="white-space:nowrap">'+(started?v+" vote"+(v===1?"":"s"):"")+'</span></div>'; }).join("")+'</div>' : '<div class="note">No nominee.</div>')+'</div>'; }).join("")+'</div>'+
+        '<div class="toolbar" style="margin-top:12px"><span class="note">Outbox: Call for Vote '+(ob?(S.outsent[ob.id]?"sent":ob.status==="send"?"sending":(ob.to||[]).length?"ready for you":"needs the group\'s address"):"not drafted")+'; votes by email to '+esc(c.emailTo||"info@mismo.org")+'</span><span class="sp"></span>'+
+          (c.final?'<span class="chip ok">Results Final</span>'+(c.applied?'<span class="chip ok">On the Roster</span>':'<button class="btn sm pri" type="button" data-wapply>Apply to the Roster</button>')+'<button class="btn sm" type="button" data-wshare>Results Email</button>'
+            : started?'<button class="btn sm" type="button" data-wfinal>Mark Results Final</button>':'')+'<button class="btn sm" type="button" data-go="outbox">Outbox</button></div></div></div>'; }).join("")
+      : '<div class="card"><div class="empty">No workgroup elections yet. Press <b>Request an Election</b> when a group sends in its nominees.</div></div>');
+  wireGo(el);
+  $("#wg-new",el).onclick=()=>openWGRequest(null);
+  $$(".wgcard",el).forEach(card=>{ const c=S.cycles[card.dataset.wg]; if(!c) return;
+    card.querySelector("[data-wedit]").onclick=()=>openWGRequest(c.id);
+    card.querySelector("[data-wprev]").onclick=()=>openBallotForm(c);
+    card.querySelector("[data-wlink]").onclick=()=>copyText(wgBallotLink(c),"Ballot link");
+    card.querySelector("[data-wemail]").onclick=()=>openBallotForm(c,{byHand:true});
+    card.querySelector("[data-wbal]").onclick=()=>openWGBallots(c);
+    $$("[data-win]",card).forEach(b=>b.onclick=()=>openWinner(c,S.seats[b.dataset.win]));
+    const f=card.querySelector("[data-wfinal]"); if(f) f.onclick=async()=>{ if(f.dataset.sure){ const t=tally(c); const res=Object.assign({},c.results||{}); seatsOf(c).forEach(s=>{ if(!res[s.id]) res[s.id]={winners:winnersOf(c,s,t).ids}; }); await patch("cycles",c.id,{final:true, results:res, finalAt:new Date().toISOString()}); toast("Results marked final"); } else { f.dataset.sure="1"; f.textContent="Press Again: Lock the Winners"; setTimeout(()=>{ if(f){ delete f.dataset.sure; f.textContent="Mark Results Final"; } },3500); } };
+    const a=card.querySelector("[data-wapply]"); if(a) a.onclick=()=>applyResults(c);
+    const sh=card.querySelector("[data-wshare]"); if(sh) sh.onclick=()=>wgShareResults(c);
+  });
+}
+TABS.splice(TABS.indexOf("board")+1,0,"wg");
+const _renderTabWG = renderTab;
+renderTab = function(t){ if(t!=="wg") return _renderTabWG(t); try{ renderWG(); }catch(e){ console.error(e); $("#page-wg").innerHTML='<div class="empty">Something on this page didn\'t draw: '+esc(e.message)+'</div>'; } };
+const _badgesWG = badges;
+badges = function(){ _badgesWG(); badge("wg", wgList().filter(c=>wgStage(c)[0]==="Voting Closed").length, true); };
+
 /* ================= Start the next election year ================= */
 function openStartYear(){
   const ys=years(); const next=(vals("cycles").length? Math.max(...ys)+1 : today().getFullYear()+1);
@@ -4397,6 +4455,7 @@ async function buildCycle(type,y){
 
 /* ================= Help ================= */
 const HELP=[
+  ["Getting Started","Workgroup elections",'<p>When a Development Workgroup or Community of Practice sends in its nominees outside the yearly cycle (for example Perry\'s request for the eNote Master Control Agreement DWG), open <b>Workgroup Elections</b> and press <b>Request an Election</b>. Fill in the group, the voting dates and closing time (noon Eastern unless they ask otherwise) and each nominee with their position, then say how many to elect for each position.</p><p>Saving publishes the online ballot (resources.mismo.org/forms/elections/ballot/?e=&lt;election&gt;) and puts a <b>Call for Vote</b> (the day voting opens) and a <b>Reminder to Vote</b> (the day before it closes) in the Outbox for you to send. Add the group\'s MISMO Connect address there or on the request. The ballot closes itself at the closing time.</p><p>One vote per member company, as always: duplicates are held for you to settle under <b>Ballots</b>. Ballots emailed to info@mismo.org go in with <b>+ Ballot Sent by Email</b>. When voting closes, press <b>Mark Results Final</b>, then <b>Apply to the Roster</b> and <b>Results Email</b>.</p>'],
   ["Getting Started","How Elections HQ is laid out",'<p>Each election has its own page: <b>Business Domains</b>, <b>Areas of Focus</b>, the <b>Governance Committee</b> and the <b>Board of Directors</b>. The pages under Running the Elections work across all of them: Nominations, Ballots and Results, the <b>Outbox</b>, Timeline and Tasks, Communications and Onboarding. Records holds the Structure, the Leadership Roster, Voter Lists and the Public Forms.</p><p>An election year is the year terms begin: the 2027 election year runs nominations and voting in the fall of 2026, and uses 2026 attendance from Meeting Trackers.</p><p>Pages with an <b>(i)</b> beside the title show what MISMO\'s Bylaws say about that election.</p>'],
   ["Getting Started","The new structure",'<p>Communities of Practice become <b>Areas of Focus</b> (standing spaces to collaborate) and Development Workgroups become <b>Task Forces</b> (each builds one product and wraps up when the domain decides the work is done). Each sits in one of eight <b>Business Domains</b>, which own the work: they review and approve it and decide which Areas of Focus and Task Forces they need. The Council of Chairs is the Domain Chairs. Business Glossary and Business Process Model become MISMO tools, stewarded through the Governance Committee, and with Information Management and Architecture they are led by Governance Committee members.</p><p>Groups archived in Meeting Trackers or Higher Logic (Fee Modernization, for one) are marked inactive on the Structure page.</p>'],
   ["Getting Started","Starting a new year",'<p>On the Election Year page, press <b>Start the Next Election Year</b>. Business Domain dates move forward a year onto the same weekday, tasks are copied with every box unticked, and two seats (Chair and Vice Chair) are built for every Business Domain. Areas of Focus and the Governance Committee are set up as appointed, with no seats or ballots. After that, every date is yours to change.</p>'],
