@@ -1,0 +1,33 @@
+{
+  "cycle": "wg-enote-bailee-dwg-2026-11-09",
+  "type": "wg",
+  "year": 2026,
+  "name": "eNote Bailee DWG Leadership Election",
+  "announce": "2026-11-16",
+  "opens": "2026-11-09",
+  "closes": "2026-11-13",
+  "closesAt": "2026-11-13T17:00:00.000Z",
+  "closesLabel": "Friday, November 13 at noon Eastern",
+  "mode": "auto",
+  "groups": [
+    {
+      "name": "eNote Bailee DWG",
+      "seats": [
+        {
+          "id": "wg-enote-bailee-dwg-2026-11-09__co-chair",
+          "position": "Co-Chair",
+          "count": 1,
+          "nominees": [
+            {
+              "id": "nmw55o80skyf7",
+              "name": "Laura Troy",
+              "company": "Georgia Banking Company",
+              "title": "",
+              "statement": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
