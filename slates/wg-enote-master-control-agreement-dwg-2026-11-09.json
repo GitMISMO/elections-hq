@@ -1,0 +1,54 @@
+{
+  "cycle": "wg-enote-master-control-agreement-dwg-2026-11-09",
+  "type": "wg",
+  "year": 2026,
+  "name": "eNote Master Control Agreement DWG Leadership Election",
+  "announce": "2026-11-16",
+  "opens": "2026-11-09",
+  "closes": "2026-11-13",
+  "closesAt": "2026-11-13T17:00:00.000Z",
+  "closesLabel": "Friday, November 13 at noon Eastern",
+  "mode": "auto",
+  "groups": [
+    {
+      "name": "eNote Master Control Agreement DWG",
+      "seats": [
+        {
+          "id": "wg-enote-master-control-agreement-dwg-2026-11-09__chair",
+          "position": "Chair",
+          "count": 1,
+          "nominees": [
+            {
+              "id": "nmw55nx20o11u",
+              "name": "John Stoner",
+              "company": "Stoner Fox Law Group LLP",
+              "title": "",
+              "statement": ""
+            }
+          ]
+        },
+        {
+          "id": "wg-enote-master-control-agreement-dwg-2026-11-09__co-vice-chair",
+          "position": "Co-Vice Chair",
+          "count": 2,
+          "nominees": [
+            {
+              "id": "nmw55ny7nyxux",
+              "name": "Evan Kaminski",
+              "company": "Planet Home Lending",
+              "title": "",
+              "statement": ""
+            },
+            {
+              "id": "nmw55nzlay3aq",
+              "name": "Nate Clear",
+              "company": "First Funding",
+              "title": "",
+              "statement": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
