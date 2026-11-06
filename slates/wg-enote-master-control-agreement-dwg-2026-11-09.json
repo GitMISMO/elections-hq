@@ -14,14 +14,21 @@
       "name": "eNote Master Control Agreement DWG",
       "seats": [
         {
-          "id": "wg-enote-master-control-agreement-dwg-2026-11-09__chair",
-          "position": "Chair",
-          "count": 1,
+          "id": "wg-enote-master-control-agreement-dwg-2026-11-09__co-chair",
+          "position": "Co-Chair",
+          "count": 2,
           "nominees": [
             {
               "id": "nmw55nx20o11u",
               "name": "John Stoner",
               "company": "Stoner Fox Law Group LLP",
+              "title": "",
+              "statement": ""
+            },
+            {
+              "id": "nmw5dt65kn8n9",
+              "name": "Laura Troy",
+              "company": "Georgia Banking Company",
               "title": "",
               "statement": ""
             }
@@ -36,13 +43,6 @@
               "id": "nmw55ny7nyxux",
               "name": "Evan Kaminski",
               "company": "Planet Home Lending",
-              "title": "",
-              "statement": ""
-            },
-            {
-              "id": "nmw5dt65kn8n9",
-              "name": "Laura Troy",
-              "company": "Georgia Banking Company",
               "title": "",
               "statement": ""
             },
