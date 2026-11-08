@@ -9,7 +9,7 @@
   in the PRIVATE repository GitMISMO/elections-hq-data). No GitHub token or other secret ever goes
   in this file, and no records either: they all arrive from elections-hq-data after sign-in.
 -->
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Elections HQ</title>
 <!-- Hide the app until someone is signed in. If this file is replaced by an upload, carry this block across. -->
 <style>html.hq-out body > *:not(#hq-gate):not(.rs-scrim){visibility:hidden}</style>
@@ -1682,6 +1682,9 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
     <button type="button" data-hq="health" title="System Health">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg>
       <span>System Health</span><b class="nbadge" id="nb-health" hidden></b></button>
+    <button type="button" data-hq="past" title="Past Elections">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/></svg>
+      <span>Past Elections</span></button>
     <div class="navsep">Help</div>
     <button type="button" data-hq="help" title="Help">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 014.8.9c0 1.7-2.4 2.2-2.4 3.8M12 17.2v.01"/></svg>
@@ -1718,6 +1721,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
   <section class="page" id="page-voters" hidden></section>
   <section class="page" id="page-forms" hidden></section>
   <section class="page" id="page-health" hidden></section>
+  <section class="page" id="page-past" hidden></section>
   <section class="page" id="page-help" hidden></section>
 </main>
 
@@ -1732,7 +1736,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const BUILD={at:"2026-11-08T18:06:01Z",fp:"eced78b9"};
+const BUILD={at:"2026-11-08T18:37:09Z",fp:"85d15e95"};
 
 /* ================= the public forms (shared by Elections HQ and the website copies) =================
    EF.nominate(el, {elections, submit, onDone})   elections: [{cycle, type, name, open, closes, groups:[{name, positions:[{seat, position}]}], seats:[{seat, position}], boardSeats}]
@@ -1848,9 +1852,15 @@ var EF = (function(){
       if(!val(f,"ack")) return void(er.textContent="Please tick the box before sending.");
       var rec={id:id("v"), kind:"ballot", cycle:sl.cycle, group:g, voter:{first:val(f,"first"), last:val(f,"last"), email:val(f,"email"), company:val(f,"company"), title:val(f,"title")}, code:cfg.code||"", choices:choices, submittedAt:new Date().toISOString(), hp: !!val(f,"website")};
       var b=f.querySelector("#ef-go"); b.disabled=true; b.textContent="Sending…";
+      /* the receipt: what they chose, read from the ballot itself */
+      var mine=[].map.call(f.querySelectorAll(".seatq[data-seat]"),function(q){ var hd=q.querySelector("h4"); var who=[].map.call(q.querySelectorAll("input:checked"),function(i){ var o=i.closest(".opt"); var nm=o&&o.querySelector("b"); return (nm?nm.textContent:(o?o.textContent:i.value)).trim(); });
+        return {pos:(hd&&hd.firstChild?hd.firstChild.textContent:"").trim(), who:who}; }).filter(function(x){ return x.who.length; });
+      var rno=String(rec.id).toUpperCase().replace(/^(.{4})(.{4})/,"$1-$2-");
+      var receipt='<div class="rcpt"><div class="rn">Receipt number <b>'+e(rno)+'</b></div><ul>'+mine.map(function(x){ return '<li><span>'+e(x.pos)+'</span>'+e(x.who.join(", "))+'</li>'; }).join("")+'</ul><div class="rh">Keep this number. If you have a question about your ballot, send it to elections@mismo.org.</div><button class="btn" type="button" id="ef-print">Print This Receipt</button></div>';
       Promise.resolve(cfg.submit(rec)).then(function(){
-        el.innerHTML='<div class="ef">'+hero+'<div class="done"><b>Thank you. Your ballot is in.</b>Results will be announced '+(sl.announce?e(fmt(sl.announce)):"soon")+'.'+(multi?'<div style="margin-top:12px"><button class="btn" type="button" id="ef-again">Vote in Another '+GL+'</button></div>':'')+'</div></div>';
+        el.innerHTML='<div class="ef">'+hero+'<div class="done"><b>Thank you. Your ballot is in.</b>Results will be announced '+(sl.announce?e(fmt(sl.announce)):"soon")+'.'+receipt+(multi?'<div style="margin-top:12px"><button class="btn" type="button" id="ef-again">Vote in Another '+GL+'</button></div>':'')+'</div></div>';
         var a=el.querySelector("#ef-again"); if(a) a.onclick=function(){ ballot(el,cfg); };
+        var pr=el.querySelector("#ef-print"); if(pr) pr.onclick=function(){ window.print(); };
         if(cfg.onDone) cfg.onDone(rec);
       },function(err){ b.disabled=false; b.textContent="Cast My Ballot"; er.textContent="That didn't go through. Please try again, or email elections@mismo.org."+(err&&err.message?" ("+err.message+")":""); });
     });
@@ -2632,10 +2642,10 @@ function renderForms(){
       cs.filter(c=>c.type!=="board").map(c=>'<tr><td><b>'+esc(TYPES[c.type].name)+'</b></td><td>'+(formOpen(c,"ballot")?'<span class="chip ok">Open</span>':'<span class="chip wait">Closed</span>')+'</td><td>'+esc(fS(cdate(c,"ballotOpen")))+' to '+esc(fS(cdate(c,"ballotClose")))+'</td><td>'+esc(FORM_BASE+"ballot/?e="+c.id)+'</td><td><button class="btn sm" type="button" data-fb="'+esc(c.id)+'">Try It</button> <button class="btn sm" type="button" data-fp="'+esc(c.id)+'">Publish</button></td></tr>').join("")+
     '</tbody></table></div></div></div>'+
     '<div class="grid2" style="margin-top:22px"><div class="card"><div class="ch"><h2>How the Forms Keep Spam Out</h2></div><div class="checks">'+
-      '<div class="chk"><span class="ct"><b>A hidden field only robots fill in</b><small>Entries that fill it, or arrive within four seconds of the page opening, are marked and set aside.</small></span></div>'+
+      '<div class="chk"><span class="ct"><b>A hidden field only robots fill in</b><small>Entries that fill it are thanked and quietly not filed.</small></span></div>'+
       '<div class="chk"><span class="ct"><b>Nothing counts until it\'s reviewed</b><small>Every nomination lands in the Nominations inbox first. Links, "bonus", "credits" and similar words are flagged.</small></span></div>'+
       '<div class="chk"><span class="ct"><b>One company, one vote</b><small>A second ballot from the same company is held, not counted, until staff choose which stands.</small></span></div>'+
-      '<div class="chk"><span class="ct"><b>Personal ballot links</b><small>For the Governance Committee, each MVR and MVA gets their own link, so ballots match the voter list.</small></span></div>'+
+      '<div class="chk"><span class="ct"><b>Personal ballot links</b><small>For the Business Domains, each MVR and MVA gets their own link: a ballot is checked against the voter list as it arrives, the company comes from the list, and each link counts once.</small></span></div>'+
     '</div></div>'+
     '<div class="card"><div class="ch"><h2>Where Entries Go</h2></div><div class="checks">'+
       '<div class="chk"><span class="ct"><b>Nominations</b><small>Into the Nominations inbox, then onto the seat once accepted.</small></span></div>'+
@@ -4611,6 +4621,151 @@ badges = function(){ _badgesH(); try{ badge("health", healthChecks().filter(c=>c
 /* the version, under Saving */
 setTimeout(()=>{ const n=$("#rail-save"); if(!n || typeof BUILD==="undefined" || $("#rail-ver")) return; const d=document.createElement("div"); d.className="railnote"; d.id="rail-ver"; d.innerHTML='<b>Version</b><span>'+esc(BUILD.fp)+' · '+esc(whenET(BUILD.at))+'</span>'; n.after(d); },0);
 
+/* ======================= RECORDS AND RECEIPTS (November 8, 2026) =======================
+   - Past Elections: elections finished more than two years ago are moved out of the working files
+     once a year by the GitHub job "Archive past elections" (elections-hq-data/.github/archive.mjs).
+     Nothing is deleted: the summary is in data/archive.json and everything else in
+     data/arch-<election>.json, opened here read-only.
+   - Paste a List reads the Aptify report's own columns (First Name, Last Name, Primary Email,
+     ShipToCompany, Other Function, ID) and keeps only MISMO Voting Representatives and Alternates.
+   - Audit Trail: everything recorded about an election's ballots and results, as a CSV, on the
+     results and attached to the Request to Certify.
+   - Ballot receipts: the ballot page shows a receipt number and the choices; an emailed receipt
+     (personal links only, to the address on the voter list) is switched on in Public Forms. */
+S.archive = S.archive || {};
+
+/* ---------- Voter Lists: paste straight from the Aptify report ---------- */
+const VOTE_FN = r=>{ const x=String(r||"").toUpperCase(); return /ALTERNATE|\bMVA\b/.test(x)?"MVA":/REPRESENTATIVE|\bMVR\b/.test(x)?"MVR":""; };
+function readVoterRows(text){
+  const lines=String(text||"").split(/\r?\n/).map(r=>r.split(/\t|,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(x=>x.replace(/^"|"$/g,"").trim())).filter(r=>r.some(Boolean));
+  if(!lines.length) return {rows:[], skipped:0};
+  const h=lines[0].map(x=>x.toLowerCase().replace(/[^a-z]/g,""));
+  const at=names=>h.findIndex(x=>names.includes(x));
+  const iE=at(["email","primaryemail","emailaddress"]);
+  if(iE<0){ /* no header row: Name, Email, Company, Role, as before */
+    const rows=lines.filter(r=>!/^name$/i.test(r[0])).map(r=>({name:r[0]||"", email:r[1]||"", company:r[2]||"", role:VOTE_FN(r[3])||(r[3]||""), companyId:""}));
+    return {rows, skipped:0}; }
+  const iF=at(["firstname","first"]), iL=at(["lastname","last"]), iN=at(["name","fullname"]), iC=at(["shiptocompany","company","companyname","billtocompany","organization"]);
+  const iR=at(["otherfunction","function","role","contactfunction"]), iId=at(["companyid","shiptocompanyid","id"]);
+  let skipped=0; const rows=[];
+  lines.slice(1).forEach(r=>{ const role=iR>=0?VOTE_FN(r[iR]):"";
+    if(iR>=0 && !role){ skipped++; return; }
+    const name=iN>=0&&r[iN]? r[iN] : [iF>=0?r[iF]:"", iL>=0?r[iL]:""].filter(Boolean).join(" ");
+    rows.push({name, email:r[iE]||"", company:iC>=0?r[iC]||"":"", role, companyId:iId>=0?r[iId]||"":""}); });
+  return {rows, skipped};
+}
+const _voterActions14 = voterActions;
+voterActions = function(el,k,vs){
+  _voterActions14(el,k,vs);
+  const b=$("#vt-import",el); if(!b) return;
+  b.onclick=()=>openPane({eye:"Voter Lists", title:"Paste a List", data:{}, top:'<p class="note" style="margin:0 0 12px">Copy the rows from Excel, header row included. The Aptify voting representatives report works as it comes: only MISMO Voting Representatives and Alternates are kept, and anyone already on the list keeps their ballot link.</p>',
+    fields:[{k:"mode",label:"What to Do",type:"select",opts:[["add","Add to the list"],["replace","Replace the list"]]},{k:"rows",label:"Rows Copied from Excel",type:"textarea",rows:12,ph:"First Name\tLast Name\tPrimary Email\tShipToCompany\tOther Function\nJane\tSmith\tjsmith@example.com\tExample Bank\tMISMO Voting Representative"}],
+    save:async v=>{ const got=readVoterRows(v.rows); const rows=got.rows.filter(r=>r.email||r.name);
+      if(!rows.length) throw new Error(got.skipped?"None of those rows are MISMO Voting Representatives or Alternates.":"Paste at least one row.");
+      const oldCode={}; vs.forEach(x=>{ const em=String(x.email||"").toLowerCase(); if(em && x.code) oldCode[em]=x.code; });
+      const keep=new Set(rows.map(r=>String(r.email||"").toLowerCase()).filter(Boolean));
+      if(v.mode==="replace") for(const x of vs) if(!keep.has(String(x.email||"").toLowerCase())) await remove("voters",x.id);
+      const byEmail={}; vs.forEach(x=>{ const em=String(x.email||"").toLowerCase(); if(em) byEmail[em]=x; });
+      const seen=new Set(); let n=0, kept=0;
+      for(const r of rows){ const em=String(r.email||"").toLowerCase(); if(em && seen.has(em)) continue; seen.add(em);
+        const cur=em&&byEmail[em];
+        if(cur){ if(v.mode==="replace"){ await put("voters",cur.id,Object.assign({},cur,{name:r.name||cur.name, company:r.company||cur.company, role:r.role||cur.role, companyId:r.companyId||cur.companyId||""})); kept++; } continue; }
+        await put("voters",uid("vr"),{list:k, name:r.name, email:r.email, company:r.company, role:r.role, companyId:r.companyId, code:oldCode[em]||newCode()}); n++; }
+      const co=new Set(rows.map(r=>norm(r.company)).filter(Boolean)).size;
+      toast(plural(n,"person","people")+" added"+(kept?", "+kept+" kept":"")+" from "+plural(co,"company","companies")+(got.skipped?"; "+got.skipped+" other contacts left out":""),7000); }});
+};
+
+/* ---------- Audit Trail ---------- */
+function auditRows(c){
+  const rows=[["When (Eastern)","What","Ballot or Record","Who","Detail"]]; const st=voteStatus(c);
+  const at=x=>x?whenET(x).replace(/ ET$/,""):"";
+  votesOf(c).forEach(v=>{ const s=st[v.id]||{}; const f=S.voteflags[v.id]||{};
+    const checks=[v.codeCheck?"link check: "+v.codeCheck:"", v.codeUsedBefore?"link used before":"", v.outOfWindow?"arrived "+v.outOfWindow:"", v.listRole?"list role: "+v.listRole:""].filter(Boolean).join("; ");
+    rows.push([at(v.receivedAt||v.submittedAt), S.handvotes[v.id]?"Ballot typed in from email":"Ballot received from the form", v.id, S.handvotes[v.id]?(v.updatedBy||""):fullName(v.voter||{}), [(v.voter||{}).company||"", checks].filter(Boolean).join(" · ")]);
+    if(f.status) rows.push([at(f.at||f.updatedAt), f.status==="counted"?"Counted by staff":f.status==="excluded"?"Set aside by staff":"Counting decision: "+f.status, v.id, f.by||f.updatedBy||"", f.reason||""]);
+    rows.push(["", "Where it stands", v.id, "", (s.k||"")+(s.why?": "+s.why:"")]); });
+  Object.entries(c.results||{}).forEach(([sid,r])=>{ if(r&&(r.why||r.by)){ const s=S.seats[sid]||{}; rows.push([at(r.at), "Winner set by hand", seatLabel(s)||sid, r.by||"", [((r.winners||[]).map(i=>fullName(S.nominations[i]||{})).join(", ")), r.why||""].filter(Boolean).join(" · ")]); } });
+  if(c.final) rows.push([at(c.finalAt), "Results marked final", c.id, c.finalBy||"", c.finalCounts?("received "+c.finalCounts.received+", counted "+c.finalCounts.counted+", set aside "+c.finalCounts.setAside):""]);
+  if(c.fingerprint) rows.push(["", "Ballot fingerprint (SHA-256)", c.id, "", c.fingerprint]);
+  if(c.applied) rows.push([at(c.appliedAt), "Applied to the roster", c.id, c.appliedBy||"", ""]);
+  const sent=vals("outsent").filter(s=>{ const o=S.outbox[s.id.replace(/__retry\d+$/,"")]||S.outbox[s.id]; return o && o.cycle===c.id; });
+  sent.forEach(s=>{ const o=S.outbox[s.id]||{}; rows.push([at(s.at), "Email "+(s.status||""), o.ruleLabel||o.subject||s.id, o.sentBy||o.updatedBy||"", (s.emails?s.emails+" sent":"")+(s.error?" · "+s.error:"")]); });
+  const head=rows.shift(); rows.sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
+  return [head].concat(rows);
+}
+function auditCsv(c){ return csvOf(auditRows(c)); }
+function downloadAudit(c){ const csv=auditCsv(c); const name=(c.group?slugify(c.group)+"-":"")+c.id+"-audit-trail.csv";
+  if(DL) DL.save({filename:name, data:csv}).catch(()=>copyText(csv,"Audit trail")); else copyText(csv,"Audit trail"); }
+const _certFiles14 = certFiles;
+certFiles = function(c){ const f=_certFiles14(c); const body=c.year+" MISMO "+TYPES[c.type].name+" Election";
+  return f.concat([{name:body+" - Audit Trail.csv", contentType:"text/csv", content:auditCsv(c)}]); };
+const _certBody14 = certBody;
+certBody = function(c){ let s=_certBody14(c);
+  if(c.final && c.fingerprint) s=s.replace("\nHere is a summary of the results:", "\nThe results were marked final by "+(c.finalBy||"MISMO staff")+" on "+fLong(localDay(c.finalAt))+". The ballots counted carry the fingerprint "+c.fingerprint.slice(0,16)+"…; the full fingerprint and every staff decision are in the Audit Trail.\n\nHere is a summary of the results:");
+  return s; };
+const _resultsHtml14 = resultsHtml;
+resultsHtml = function(c){ return _resultsHtml14(c).replace('id="rs-csv">Download Count</button>','id="rs-csv">Download Count</button><button class="btn sm" type="button" id="rs-trail">Audit Trail</button>'); };
+const _wireResults14 = wireResults;
+wireResults = function(el,c){ _wireResults14(el,c); const b=$("#rs-trail",el); if(b) b.onclick=()=>downloadAudit(c); };
+const _renderWG14 = renderWG;
+renderWG = function(){ _renderWG14(); const el=$("#page-wg"); if(!el) return;
+  $$(".wgcard[data-wg]",el).forEach(card=>{ const c=S.cycles[card.dataset.wg]; if(!c || !votesOf(c).length) return; const o=card.querySelector('[data-go="outbox"]'); if(!o || card.querySelector("[data-wtrail]")) return;
+    const b=document.createElement("button"); b.className="btn sm"; b.type="button"; b.dataset.wtrail="1"; b.textContent="Audit Trail"; b.onclick=()=>downloadAudit(c); o.before(b); }); };
+
+/* ---------- Past Elections ---------- */
+let PAST_OPEN=null, PAST_DATA={}, PAST_ERR="";
+function loadPast(file){
+  if(PAST_DATA[file] || !DB) return; PAST_DATA[file]="loading";
+  try{ const un=DB.collection(file).onSnapshot(snap=>{ const o={}; snap.docs.forEach(d=>{ o[d.id]=d.data(); }); PAST_DATA[file]=o; try{ un&&un(); }catch(e){} if(TAB==="past") renderPast(); }, e=>{ PAST_DATA[file]=null; PAST_ERR=(e&&e.message)||"couldn't open"; if(TAB==="past") renderPast(); }); }
+  catch(e){ PAST_DATA[file]=null; PAST_ERR=e.message; }
+}
+function pastParts(a){ const raw=PAST_DATA[a.file]; if(!raw||raw==="loading") return null; const by={};
+  Object.values(raw).forEach(x=>{ if(!x||!x.col) return; (by[x.col]=by[x.col]||{})[x.docId]=Object.assign({id:x.docId},x.doc); }); return by; }
+function pastBallotsCsv(a,p){ const noms=p.nominations||{}, seats=p.seats||{}, flags=p.voteflags||{};
+  const rows=[["Ballot","Received (Eastern)","Voter","Email","Company","Choices","Staff Decision","By","Reason"]];
+  Object.values(Object.assign({},p.votes||{},p.handvotes||{})).sort((x,y)=>String(x.submittedAt||"").localeCompare(String(y.submittedAt||""))).forEach(v=>{ const f=flags[v.id]||{};
+    const picks=Object.entries(v.choices||{}).map(([sid,ids])=>{ const s=seats[sid]||{}; return [s.group,s.position].filter(Boolean).join(" ")+": "+(Array.isArray(ids)?ids:[ids]).map(i=>fullName(noms[i]||{})||i).join("; "); }).join(" | ");
+    rows.push([v.id, whenET(v.receivedAt||v.submittedAt).replace(/ ET$/,""), fullName(v.voter||{}), (v.voter||{}).email||"", v.listCompany||(v.voter||{}).company||"", picks, f.status||"", f.by||f.updatedBy||"", f.reason||(v.outOfWindow?"arrived "+v.outOfWindow:"")]); });
+  return csvOf(rows); }
+function renderPast(){
+  const el=$("#page-past"); const list=vals("archive").sort((a,b)=>String(b.year||b.cycle).localeCompare(String(a.year||a.cycle)));
+  const nm=a=>(a.group? a.group+" · " : "")+(a.title||((TYPES[a.type]||{}).name||a.type||"Election")+" "+(a.year||""));
+  const open=PAST_OPEN && S.archive[PAST_OPEN];
+  let h=phead("Records","Past Elections","Elections finished more than two years ago move here each January, so the working files stay small. Nothing is deleted: open any of them to see the results, ballots and decisions.","")+
+    band("Archive", tile(list.length,"Past Elections","kept for reference")+tile(list.reduce((n,a)=>n+(((a.counts||{}).votes||0)+((a.counts||{}).handvotes||0)),0),"Ballots","in the archive")+tile("2 years","Moved After","the results date")+tile("Jan 15","Next Check","every year"))+
+    '<div class="card"><div class="ch"><h2>Archived Elections</h2><span class="cnt">'+list.length+'</span></div><div class="cb flush"><div class="tw"><table class="t"><thead><tr><th>Election</th><th>Results</th><th>Ballots</th><th>Final</th><th></th></tr></thead><tbody>'+
+    (list.length? list.map(a=>'<tr><td><b>'+esc(nm(a))+'</b><span class="t2">archived '+esc(fL(localDay(a.archivedAt)))+'</span></td><td>'+esc(fL(((a.dates||{}).results)||localDay(a.finalAt)||""))+'</td><td>'+(((a.counts||{}).votes||0)+((a.counts||{}).handvotes||0))+'</td><td>'+(a.final?esc(a.finalBy||"Yes"):"Not marked final")+'</td><td><button class="btn sm" type="button" data-past="'+esc(a.id)+'">'+(PAST_OPEN===a.id?"Close":"Open")+'</button></td></tr>').join("")
+      : '<tr><td colspan="5" class="note">'+(loading("archive")?"Loading…":"Nothing archived yet. The first elections move here two years after their results, in January.")+'</td></tr>')+'</tbody></table></div></div></div>';
+  if(open){ loadPast(open.file); const p=pastParts(open);
+    h+='<div class="card" style="margin-top:22px"><div class="ch"><h2>'+esc(nm(open))+'</h2><span class="note">read-only</span><div class="r">'+(p?'<button class="btn sm" type="button" id="past-csv">Ballots</button><button class="btn sm" type="button" id="past-json">Everything (JSON)</button>':'')+'</div></div><div class="cb">'+
+      '<dl class="kv"><dt>Results Date</dt><dd>'+esc(fL(((open.dates||{}).results)||"")||"—")+'</dd><dt>Marked Final</dt><dd>'+esc(open.final?(whenET(open.finalAt)+(open.finalBy?" by "+open.finalBy:"")):"No")+'</dd>'+
+      (open.finalCounts?'<dt>Ballots</dt><dd>'+esc(open.finalCounts.received+" received, "+open.finalCounts.counted+" counted, "+open.finalCounts.setAside+" set aside")+'</dd>':'')+
+      (open.fingerprint?'<dt>Fingerprint</dt><dd style="word-break:break-all">'+esc(open.fingerprint)+'</dd>':'')+'</dl>'+
+      '<div class="tw" style="margin-top:14px"><table class="t"><thead><tr><th>Position</th><th>Elected</th></tr></thead><tbody>'+
+      ((open.results||[]).map(r=>'<tr><td>'+esc(r.seat)+(r.count>1?' <span class="note">elect '+r.count+'</span>':'')+'</td><td>'+(r.elected.length?r.elected.map(e=>'<b>'+esc(e.name)+'</b>'+(e.company?'<span class="t2">'+esc(e.company)+'</span>':'')).join(""):'<span class="note">none recorded</span>')+'</td></tr>').join("")||'<tr><td colspan="2" class="note">No positions recorded.</td></tr>')+
+      '</tbody></table></div>'+(p===null?'<p class="note">'+(PAST_DATA[open.file]===null?"Couldn't open the archive file: "+esc(PAST_ERR):"Opening the ballots…")+'</p>':'')+'</div></div>'; }
+  el.innerHTML=h;
+  $$("[data-past]",el).forEach(b=>b.onclick=()=>{ PAST_OPEN=PAST_OPEN===b.dataset.past?null:b.dataset.past; renderPast(); });
+  if(open){ const p=pastParts(open);
+    const cs=$("#past-csv",el); if(cs) cs.onclick=()=>{ const csv=pastBallotsCsv(open,p); if(DL) DL.save({filename:open.cycle+"-ballots.csv", data:csv}).catch(()=>copyText(csv,"Ballots")); else copyText(csv,"Ballots"); };
+    const js=$("#past-json",el); if(js) js.onclick=()=>{ const t=JSON.stringify({summary:open, records:p},null,2); if(DL) DL.save({filename:open.cycle+"-archive.json", data:t}).catch(()=>copyText(t,"Archive")); else copyText(t,"Archive"); }; }
+}
+TABS.splice(TABS.indexOf("health")+1,0,"past");
+const _renderTabP = renderTab;
+renderTab = function(t){ if(t!=="past") return _renderTabP(t); try{ renderPast(); }catch(e){ console.error(e); $("#page-past").innerHTML='<div class="empty">Something on this page didn\'t draw: '+esc(e.message)+'</div>'; } };
+
+/* ---------- ballot receipts by email (switch on Public Forms) ---------- */
+const _renderForms14 = renderForms;
+renderForms = function(){ _renderForms14(); const el=$("#page-forms"); if(!el) return; const a=(S.settings&&S.settings.automation)||{}; const on=!!a.receipts;
+  const card=document.createElement("div"); card.className="card"; card.style.marginTop="22px";
+  card.innerHTML='<div class="ch"><h2>Ballot Receipts</h2><span class="note">what a voter gets back</span><div class="r"><button class="btn sm'+(on?'':' pri')+'" type="button" id="fm-receipts">'+(on?'Turn Off Emailed Receipts':'Turn On Emailed Receipts')+'</button></div></div><div class="checks">'+
+    '<div class="chk"><span class="ct"><b>On the ballot page</b><small>Always: after voting, the page shows a receipt number and the choices made, which they can print.</small></span></div>'+
+    '<div class="chk"><span class="ct"><b>By email</b> '+chip({on:["On","ok"],off:["Off","k"]},on?"on":"off")+'<small>'+(on?'On':'Off')+'. When on, a ballot cast with a personal link gets a receipt from '+esc(flowState().mailbox)+', sent to the address on the voter list (never to an address typed into the form), once per link. Open ballots, like workgroup elections, get the on-page receipt only.</small></span></div></div>';
+  el.appendChild(card);
+  const b=$("#fm-receipts",card); b.onclick=async()=>{ if(!b.dataset.sure){ b.dataset.sure="1"; b.textContent=on?"Press Again to Turn Off":"Press Again: Email Receipts"; setTimeout(()=>{ if(b){ delete b.dataset.sure; b.textContent=on?'Turn Off Emailed Receipts':'Turn On Emailed Receipts'; } },3500); return; }
+    await patch("settings","automation",{receipts:!on}); toast(on?"Emailed receipts off":"Emailed receipts on: the next ballot from a personal link gets one"); renderForms(); };
+};
+
 /* ================= Start the next election year ================= */
 function openStartYear(){
   const ys=years(); const next=(vals("cycles").length? Math.max(...ys)+1 : today().getFullYear()+1);
@@ -4652,6 +4807,10 @@ async function buildCycle(type,y){
 /* ================= Help ================= */
 const HELP=[
   ["Getting Started","System Health and bringing things back",'<p><b>System Health</b> (under Records) checks everything Elections HQ depends on, worst first: saving, the forms flow, the email flow, emails waiting or failed, when the last nomination, ballot and nominee answer came in, Meeting Trackers, and how full the ballot file is. A red count on it in the menu means something needs fixing.</p><p>Nothing is deleted for good. Anything removed (an election, a nominee, a task, an email draft, a voter) is set aside and listed under <b>Recently Removed</b>, where <b>Bring Back</b> restores it.</p><p>If someone else saved a record after you opened it, your save stops and says who changed it and when: close it, open it again, and make your change. The version (build time and fingerprint) shows under Saving in the menu. If a GitHub job fails, you get an email.</p>'],
+  ["Results","Past elections and how long records are kept",'<p>Elections finished more than two years ago are moved out of the working files each January (on the 15th) by the GitHub job <b>Archive past elections</b> in elections-hq-data. Nothing is deleted. Everything that belonged to the election (its nominations, ballots, counting decisions, emails and send log) goes into its own archive file, and <b>Past Elections</b> (under Records) lists them. Open one to see who was elected, when the results were marked final and by whom, the ballot counts and fingerprint, and to download the ballots or everything as a file.</p><p>To see what would move without moving anything: GitHub › elections-hq-data › Actions › Archive past elections › Run workflow, with Dry run ticked.</p>'],
+  ["Results","Audit Trail",'<p><b>Audit Trail</b> on an election\'s results (and on each workgroup election once ballots are in) downloads every recorded step as a spreadsheet: each ballot as it came in with its link check, every Count This One and set-aside with who did it and when, winners set by hand, who marked the results final with the ballot fingerprint, and every email sent. It is also attached to the Request to Certify for MBA Legal. GitHub keeps every save to elections-hq-data as well, so nothing can change without a record.</p>'],
+  ["Voting","Ballot receipts",'<p>After voting, the ballot page always shows a receipt number and the choices made. Emailed receipts are switched on or off in <b>Public Forms › Ballot Receipts</b>. When on, a ballot cast with a personal link gets a receipt from the elections mailbox, sent to the address on the voter list, once per link. Open ballots (workgroup elections) get the on-page receipt only, so the form can\'t be used to send email to someone else.</p>'],
+  ["Voting","Loading the MVR and MVA list",'<p>In Aptify, each member company\'s MISMO Voting Representative and MISMO Voting Alternate are contact functions. Run the voting representatives report, copy the rows from Excel with the header row, and use <b>Voter Lists › Paste a List</b>. It reads the report\'s columns (First Name, Last Name, Primary Email, ShipToCompany, Other Function) and keeps only Voting Representatives and Alternates. <b>Replace the list</b> keeps everyone\'s ballot link if they are still on it; people no longer on it are set aside and can be brought back from System Health.</p>'],
   ["Getting Started","Workgroup elections",'<p>When a Development Workgroup or Community of Practice sends in its nominees outside the yearly cycle (for example Perry\'s request for the eNote Master Control Agreement DWG), open <b>Workgroup Elections</b> and press <b>Request an Election</b>. Fill in the group, the voting dates and closing time (noon Eastern unless they ask otherwise) and each nominee with their position, then say how many to elect for each position.</p><p>Saving publishes the online ballot (resources.mismo.org/forms/elections/ballot/?e=&lt;election&gt;) and puts a <b>Call for Vote</b> (the day voting opens) and a <b>Reminder to Vote</b> (the day before it closes) in the Outbox for you to send. Add the group\'s MISMO Connect address there or on the request. The ballot closes itself at the closing time.</p><p>One vote per member company, as always: duplicates are held for you to settle under <b>Ballots</b>. Ballots emailed to info@mismo.org go in with <b>+ Ballot Sent by Email</b>. When voting closes, press <b>Mark Results Final</b>, then <b>Apply to the Roster</b> and <b>Results Email</b>.</p>'],
   ["Getting Started","How Elections HQ is laid out",'<p>Each election has its own page: <b>Business Domains</b>, <b>Areas of Focus</b>, the <b>Governance Committee</b> and the <b>Board of Directors</b>. The pages under Running the Elections work across all of them: Nominations, Ballots and Results, the <b>Outbox</b>, Timeline and Tasks, Communications and Onboarding. Records holds the Structure, the Leadership Roster, Voter Lists and the Public Forms.</p><p>An election year is the year terms begin: the 2027 election year runs nominations and voting in the fall of 2026, and uses 2026 attendance from Meeting Trackers.</p><p>Pages with an <b>(i)</b> beside the title show what MISMO\'s Bylaws say about that election.</p>'],
   ["Getting Started","The new structure",'<p>Communities of Practice become <b>Areas of Focus</b> (standing spaces to collaborate) and Development Workgroups become <b>Task Forces</b> (each builds one product and wraps up when the domain decides the work is done). Each sits in one of eight <b>Business Domains</b>, which own the work: they review and approve it and decide which Areas of Focus and Task Forces they need. The Council of Chairs is the Domain Chairs. Business Glossary and Business Process Model become MISMO tools, stewarded through the Governance Committee, and with Information Management and Architecture they are led by Governance Committee members.</p><p>Groups archived in Meeting Trackers or Higher Logic (Fee Modernization, for one) are marked inactive on the Structure page.</p>'],

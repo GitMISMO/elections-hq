@@ -2,6 +2,13 @@
 
 One line per change people would notice. Newest first.
 
+## November 8, 2026 (evening)
+- Past Elections page: elections finished more than two years ago move into their own archive files each January 15; nothing is deleted, and each opens read-only with results, counts, fingerprint and downloads.
+- Audit Trail download on every election's results (and workgroup elections), also attached to the Request to Certify.
+- Ballot page shows a receipt number and the choices made, with Print. Emailed receipts (personal links only, to the voter-list address) can be switched on in Public Forms.
+- Voter Lists › Paste a List reads the Aptify report's columns and keeps only MISMO Voting Representatives and Alternates; Replace the List keeps links for people still on it.
+- Page safety list (Content-Security-Policy): the page only runs its own code and only talks to resources.mismo.org and the save relay.
+
 ## November 8, 2026
 - System Health page: saving, both flows, emails waiting or failed, last nomination, ballot and answer, Meeting Trackers, ballot file size.
 - Nothing is deleted for good: removed records are set aside and can be brought back from System Health.
