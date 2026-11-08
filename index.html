@@ -1323,7 +1323,7 @@ tr.join td{background:color-mix(in srgb,var(--good-soft) 70%,transparent)}
 .ef .closed{padding:22px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2)}
 .ef .seatq{padding:12px 0;border-top:1px solid var(--rule)}
 .ef .seatq:first-of-type{border-top:0;padding-top:0}
-.ef .seatq h4{margin:0 0 8px;font-size:14px}
+.ef .seatq h4{margin:0 0 8px;font-size:14px;display:flex;align-items:baseline;gap:6px}
 .ef .seatq h4 small{font-weight:500;color:var(--ink-3);margin-left:6px}
 .ef .ack{display:flex;gap:10px;align-items:flex-start;font-size:13px}
 .ef .ack input{margin:2px 0 0;width:16px;height:16px;flex:0 0 auto}
@@ -1741,7 +1741,7 @@ var EF = (function(){
   function radio(root,n){ var x=root.querySelector('[name="'+n+'"]:checked'); return x?x.value:""; }
   function fld(name,label,type,req,extra){ return '<div class="field"><label for="ef-'+name+'">'+e(label)+(req?'':' <span class="efn">(optional)</span>')+'</label><input id="ef-'+name+'" name="'+name+'" type="'+(type||"text")+'" autocomplete="'+(extra||"off")+'"'+(req?' required':'')+'></div>'; }
   var LONG={aof:"Area of Focus Co-Chairs", domain:"Business Domain Leadership", goc:"Governance Committee", board:"Board of Directors"};
-  var WHAT={aof:"Two Co-Chairs for each Area of Focus", domain:"A Chair and a Vice Chair for each Business Domain (a company may lead only one domain)", goc:"The five members who confirm MISMO's process was followed", board:"Recommend someone for MISMO's Board of Directors"};
+  var WHAT={aof:"Two Co-Chairs for each Area of Focus", domain:"A Chair and a Vice Chair for each Business Domain (a company may hold one Chair and one Vice Chair across all eight)", goc:"The five members who confirm MISMO's process was followed", board:"Recommend someone for MISMO's Board of Directors"};
   function fmt(s){ var m=String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})/); if(!m) return ""; var d=new Date(+m[1],+m[2]-1,+m[3]); return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d.getDay()]+", "+["January","February","March","April","May","June","July","August","September","October","November","December"][d.getMonth()]+" "+d.getDate(); }
 
   function nominate(el, cfg){
@@ -1822,12 +1822,13 @@ var EF = (function(){
     function draw(g){ var box=f.querySelector("#ef-seats"); if(!g){ box.innerHTML='<div class="efn">Choose the '+GL+' first.</div>'; return; }
       var seats=g.seats.filter(function(s){ return s.nominees.length; }); if(!seats.length){ box.innerHTML='<div class="efn">There are no confirmed nominees on this ballot yet.</div>'; return; }
       box.innerHTML=seats.map(function(s){ var many=s.count>1;
-        return '<div class="seatq" data-seat="'+e(s.id)+'" data-count="'+s.count+'"><h4>'+e(s.position)+'<small>'+(many?'vote for up to '+s.count:'vote for one')+'</small></h4><div class="opts">'+
+        return '<div class="seatq" data-seat="'+e(s.id)+'" data-count="'+s.count+'"><h4>'+e(s.position)+'<small>'+(many?'vote for up to '+s.count:'vote for one')+'</small><button type="button" data-clear="'+e(s.id)+'" style="margin-left:auto;background:none;border:0;padding:0 2px;font:inherit;font-size:13px;color:#1a74b8;text-decoration:underline;cursor:pointer">Clear</button></h4><div class="opts">'+
           s.nominees.map(function(n){ return '<label class="opt"><input type="'+(many?"checkbox":"radio")+'" name="s_'+e(s.id)+'" value="'+e(n.id)+'"><span><b>'+e(n.name)+'</b><small>'+e([n.title,n.company].filter(Boolean).join(", "))+'</small>'+(n.statement?'<small style="margin-top:6px">'+e(n.statement)+'</small>':'')+'</span></label>'; }).join("")+
           '</div></div>'; }).join(""); }
     if(allIn) draw(ALL); else if(!multi) draw(sl.groups[0]);
     else { var gs=f.querySelector("#ef-g"); gs.onchange=function(){ draw(sl.groups.filter(function(g){ return g.name===gs.value; })[0]); };
       if(cfg.group && sl.groups.some(function(g){ return g.name===cfg.group; })){ gs.value=cfg.group; gs.onchange(); } }
+    f.addEventListener("click",function(ev){ var b=ev.target.closest&&ev.target.closest("[data-clear]"); if(!b) return; ev.preventDefault(); var q=b.closest(".seatq"); [].forEach.call(q.querySelectorAll("input"),function(i){ i.checked=false; }); [].forEach.call(q.querySelectorAll(".opt"),function(o){ o.classList.remove("on"); }); });
     f.addEventListener("change",function(ev){ var t=ev.target; if(t.type==="checkbox" && t.name.indexOf("s_")===0){ var q=t.closest(".seatq"), max=+q.dataset.count; if(t.value==="abstain" && t.checked) [].forEach.call(q.querySelectorAll("input"),function(i){ if(i!==t) i.checked=false; }); else { var ab=q.querySelector('input[value="abstain"]'); if(ab && t.checked) ab.checked=false; var on=q.querySelectorAll("input:checked"); if(on.length>max){ t.checked=false; f.querySelector("#ef-err").textContent="You can choose up to "+max+" for "+q.querySelector("h4").firstChild.textContent+"."; } } }
       [].forEach.call(f.querySelectorAll(".opt"),function(o){ var i=o.querySelector("input"); o.classList.toggle("on",!!(i&&i.checked)); }); });
     f.addEventListener("submit",function(ev){
@@ -2069,10 +2070,10 @@ const loading = c=>LIVE && !LOADED.has(c);
 
 /* ================= the election year ================= */
 let CY = null;   /* the year terms begin, e.g. 2027 */
-function years(){ const ys=new Set(vals("cycles").map(c=>+c.year).filter(Boolean)); if(!ys.size) ys.add(today().getFullYear()+1); return [...ys].sort((a,b)=>b-a); }
+function years(){ const ys=new Set(vals("cycles").filter(c=>c.type!=="wg").map(c=>+c.year).filter(Boolean)); if(!ys.size) ys.add(today().getFullYear()+1); return [...ys].sort((a,b)=>b-a); }
 function curYear(){
   if(CY && years().includes(CY)) return CY;
-  const open = vals("cycles").filter(c=>!c.closed).map(c=>+c.year).sort((a,b)=>a-b);
+  const open = vals("cycles").filter(c=>!c.closed && c.type!=="wg").map(c=>+c.year).sort((a,b)=>a-b);
   CY = open[0] || years()[0];
   return CY;
 }
@@ -2140,6 +2141,17 @@ function pendingSubs(c){ return vals("nomsubs").filter(x=>(!c||x.cycle===c.id) &
 /* ballots: one company, one vote, in each CoP (or each election for the others) */
 function votesOf(c){ return vals("votes").filter(v=>v.cycle===c.id).sort((a,b)=>(a.submittedAt||"")<(b.submittedAt||"")?-1:1); }
 function voterRoll(c){ const list=c.voterList||(c.type==="goc"?"mvr":""); return list? vals("voters").filter(v=>v.list===list) : []; }
+/* the moment a date and time happen in Eastern time, as an ISO string */
+function etMoment(d,tm){ if(!d) return ""; const guess=new Date(d+"T"+(tm||"00:00")+":00Z");
+  const p=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour12:false,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).formatToParts(guess).reduce((o,x)=>(o[x.type]=x.value,o),{});
+  const asNY=Date.UTC(+p.year,+p.month-1,+p.day,+(p.hour==="24"?0:p.hour),+p.minute); return new Date(guess.getTime()-(asNY-guess.getTime())).toISOString(); }
+/* voting window: opens at the start of the ballot date, closes at the set time (workgroups) or the end of the closing day, Eastern */
+function ballotWindow(c){ const o=cdate(c,"ballotOpen"), cl=cdate(c,"ballotClose");
+  return {opens:o?etMoment(o,"00:00"):"", closes:cl?(c.closeTime?etMoment(cl,c.closeTime):new Date(Date.parse(etMoment(cl,"23:59"))+59999).toISOString()):""}; }
+/* a ballot that came in outside the window (ballots typed in from email are staff's call) */
+function ballotWindowCheck(c,v){ if(!c || !v || v.source==="email") return ""; if(v.outOfWindow==="late") return "Arrived after voting closed"; if(v.outOfWindow==="early") return "Arrived before voting opened";
+  const at=v.receivedAt||v.submittedAt; if(!at) return ""; const w=ballotWindow(c);
+  if(w.closes && at>w.closes){ const grace=new Date(Date.parse(w.closes)+600000).toISOString(); const sent=String(v.submittedAt||""); if(at>grace || !(sent && sent<=w.closes)) return "Arrived after voting closed"; } if(w.opens && at<w.opens) return "Arrived before voting opened"; return ""; }
 function voteStatus(c){
   const out={}; const vs=votesOf(c); const roll=voterRoll(c);
   const rollEmail=new Set(roll.map(v=>String(v.email||"").toLowerCase()).filter(Boolean));
@@ -2151,7 +2163,10 @@ function voteStatus(c){
     const key=(v.group||"")+"|"+company;
     (groups[key]=groups[key]||[]).push(v.id);
     let st={k:"counted", why:""};
+    const win=ballotWindowCheck(c,v);
     if(v.hp) st={k:"excluded", why:"Caught by the spam check"};
+    else if(v.via==="Elections HQ preview") st={k:"excluded", why:"A staff preview, not a real ballot"};
+    else if(win) st={k:"excluded", why:win};
     else if(roll.length && !(v.code && rollCode[v.code]) && !rollEmail.has(String((v.voter||{}).email||"").toLowerCase())) st={k:"hold", why:"Not on the voter list"};
     out[v.id]=Object.assign(st,{key, verified: !!(v.code && rollCode[v.code])});
     if(f && f.status) out[v.id]={k:f.status, why:f.reason||"", key, verified: out[v.id].verified, manual:true};
@@ -2170,7 +2185,8 @@ function tally(c){
   const st=voteStatus(c); const res={};
   seatsOf(c).forEach(s=>{ res[s.id]={}; onBallot(s.id).forEach(n=>res[s.id][n.id]=0); });
   votesOf(c).forEach(v=>{ if((st[v.id]||{}).k!=="counted") return;
-    Object.entries(v.choices||{}).forEach(([sid,picks])=>{ (Array.isArray(picks)?picks:[picks]).forEach(nid=>{ if(res[sid] && nid in res[sid]) res[sid][nid]++; }); });
+    Object.entries(v.choices||{}).forEach(([sid,picks])=>{ if(!res[sid]) return; const cap=Math.max(1,+((S.seats[sid]||{}).count)||1);
+      [...new Set((Array.isArray(picks)?picks:[picks]).map(String))].filter(nid=>nid in res[sid]).slice(0,cap).forEach(nid=>{ res[sid][nid]++; }); });
   });
   return res;
 }
@@ -2201,7 +2217,7 @@ function openPane(cfg){
   b.onchange=()=>{ if(PANE && !cfg.noDirty) PANE.dirty=true; };
   if(cfg.save) $("#pf-save").onclick=async()=>{ const v=readFields(cfg.fields); if(v===null) return; try{ await cfg.save(v); if(PANE) PANE.dirty=false; toast(cfg.savedMsg||"Saved"); if(!cfg.stay) closePane(true); }catch(e){ const m=$("#pf-msg"); if(m && e && e.message) m.textContent=e.message; } };
   (cfg.buttons||[]).forEach((x,i)=>{ f.querySelector('[data-pb="'+i+'"]').onclick=async()=>{ const v=readFields(cfg.fields); if(v===null) return; try{ await x.run(v); if(PANE) PANE.dirty=false; }catch(e){ const m=$("#pf-msg"); if(m && e && e.message) m.textContent=e.message; } }; });
-  if(cfg.del){ const d=$("#pf-del"); d.onclick=async()=>{ if(d.dataset.sure){ await cfg.del(); toast(cfg.delLabel==="Archive"?"Archived":(cfg.delDone||"Deleted")); closePane(true); } else { d.dataset.sure="1"; d.textContent="Press Again to "+(cfg.delLabel||"Delete"); setTimeout(()=>{ if(d){ delete d.dataset.sure; d.textContent=cfg.delLabel||"Delete"; } },3500); } }; }
+  if(cfg.del){ const d=$("#pf-del"); d.onclick=async()=>{ if(d.dataset.sure){ try{ await cfg.del(); }catch(e){ const m=$("#pf-msg"); if(m) m.textContent=(e&&e.message)||"Couldn't do that."; delete d.dataset.sure; d.textContent=cfg.delLabel||"Delete"; return; } toast(cfg.delLabel==="Archive"?"Archived":(cfg.delDone||"Deleted")); closePane(true); } else { d.dataset.sure="1"; d.textContent="Press Again to "+(cfg.delLabel||"Delete"); setTimeout(()=>{ if(d){ delete d.dataset.sure; d.textContent=cfg.delLabel||"Delete"; } },3500); } }; }
   if(cfg.after) cfg.after(b);
   const p=$("#pane"); p.classList.add("open"); p.setAttribute("aria-hidden","false");
   b.scrollTop=0;
@@ -2588,7 +2604,7 @@ function openBallotForm(c,opts){
   const sl=slateOf(c); sl.announce=cdate(c,"announce");
   openPane({eye:opts.byHand?"Ballot Sent by Email":"Public Ballot · Preview", title:sl.name, data:{}, noFocus:true, noDirty:true,
     extra:(opts.byHand?'<p class="note">For a voter who couldn\'t use the online ballot and emailed their votes to info@mismo.org. Enter it exactly as they sent it.</p>':'')+'<div id="ef-host"></div>',
-    after:b=>{ EF.ballot($("#ef-host",b),{slate:sl, submit:rec=>put("votes",rec.id,Object.assign({},rec,opts.byHand?{source:"email", hp:false}:{via:"Elections HQ preview"}))}); }});
+    after:b=>{ EF.ballot($("#ef-host",b),{slate:sl, submit:rec=>opts.byHand? put("votes",rec.id,Object.assign({},rec,{source:"email", hp:false})) : (toast("Preview only: this ballot was not saved"), Promise.resolve())}); }});
 }
 async function publishNominate(){
   const cfg=nominateConfig();
@@ -3554,7 +3570,7 @@ async function autopilot(){
 /* ---------- the Outbox page ---------- */
 function renderOutbox(){
   const el=$("#page-outbox"); const y=curYear();
-  const items=vals("outbox").filter(o=>{ const c=S.cycles[o.cycle]; return c && +c.year===y; });
+  const items=vals("outbox").filter(o=>{ const c=S.cycles[o.cycle]; return c && (c.type==="wg" || +c.year===y); });
   const by=k=>items.filter(o=>outStatus(o)===k).sort((a,b)=>(a.sendAfter||"")<(b.sendAfter||"")?-1:1);
   const card=o=>{ const c=S.cycles[o.cycle]; const n=(o.merge||[]).length||(o.to||[]).length; const st=outStatus(o);
     return '<div class="kcard'+(st==="address"||st==="failed"?" flag":"")+'" data-kid="'+esc(o.id)+'" data-ob2="'+esc(o.id)+'"'+(st==="draft"||st==="send"||st==="scheduled"?' draggable="true"':'')+'><b>'+esc(o.subject||o.ruleLabel)+'</b><small>'+esc(o.ruleLabel||"")+'</small><div class="kt">'+(c?'<span class="chip k">'+esc(TYPES[c.type].short)+'</span>':'')+'<span class="note">'+(n?plural(n,"recipient"):"no address yet")+'</span>'+(o.sendAfter?'<span class="note">'+esc(fS(o.sendAfter))+'</span>':'')+(st==="scheduled"?'<span class="note" style="font-weight:600">sends automatically</span>':'')+(st==="send"?'<span class="note" style="font-weight:600">sending now</span>':'')+(st==="draft"&&o.sendAfter&&o.sendAfter<=T()?'<span class="note" style="color:var(--warn);font-weight:600">due</span>':'')+'</div>'+
@@ -3613,7 +3629,7 @@ function openPeople(){
 
 /* ---------- what happened (for watching it run) ---------- */
 function activityCard(){
-  const y=curYear(); const inYear=id=>{ const c=S.cycles[id]; return c && +c.year===y; };
+  const y=curYear(); const inYear=id=>{ const c=S.cycles[id]; return c && (c.type==="wg" || +c.year===y); };
   const ev=[];
   vals("nomsubs").filter(x=>inYear(x.cycle)).forEach(x=>ev.push([x.submittedAt,"Nomination received",fullName(x.nominee||{})+(x.group?" · "+x.group:""),"noms"]));
   vals("nominations").filter(n=>inYear(n.cycle)&&n.answeredAt).forEach(n=>ev.push([n.answeredAt,n.status==="confirmed"?"Nominee said yes":"Nominee said no",fullName(n)+" · "+((S.seats[n.seat]||{}).group||""),"noms"]));
@@ -3639,7 +3655,7 @@ openNomination = function(id,preset){ _openNomination(id,preset); if(!id) return
 
 /* run the autopilot after each redraw (it throttles itself) */
 const _renderAll = renderAll;
-renderAll = function(){ _renderAll(); setTimeout(pushMt,2500); badge("outbox", vals("outbox").filter(o=>{ const c=S.cycles[o.cycle]; return c && +c.year===curYear() && outStatus(o)==="draft"; }).length, true); setTimeout(autopilot,1500); loadMtLive(); };
+renderAll = function(){ _renderAll(); setTimeout(pushMt,2500); badge("outbox", vals("outbox").filter(o=>{ const c=S.cycles[o.cycle]; return c && (c.type==="wg" || +c.year===curYear()) && outStatus(o)==="draft"; }).length, true); setTimeout(autopilot,1500); loadMtLive(); };
 
 /* ---------- one-time move to the new structure (only while migrate.json is published) ---------- */
 const BOOT_HASH = location.hash;
@@ -4033,17 +4049,17 @@ dateIssues = function(c,dates){ const out=_dateIssuesB(c,dates); if(c.type==="bo
    - "Elections Send Email": the Outbox workflow in elections-hq-data sends each message through it.
      Its address stays private, in settings (data/settings.json in elections-hq-data).
    Each address is pasted once here, from the flow's trigger in Power Automate. */
-function flowState(){ const a=(S.settings&&S.settings.automation)||{}; return {forms:a.formsUrl||"", send:a.sendUrl||"", mailbox:a.mailbox||"elections@mba.org"}; }
+function flowState(){ const a=(S.settings&&S.settings.automation)||{}; return {forms:a.formsUrl||"", send:a.sendUrl||"", secret:!!a.sendInSecret, mailbox:a.mailbox||"elections@mismo.org"}; }
 function openFlows(){ const f=flowState();
   openPane({eye:"Public Forms", title:"Flow Addresses", data:{}, noFocus:true,
-    top:'<p class="note" style="margin:0 0 12px">Paste each address once. In Power Automate, open the flow, select <b>When an HTTP request is received</b> (shown as manual) and copy <b>HTTP URL</b>.</p><div class="kv" style="margin-bottom:12px"><dt>Elections Forms</dt><dd>'+(f.forms?'<span class="chip ok">Set</span> The nomination, confirmation and ballot pages send to it':'<span class="chip changes">Not set</span> The forms say they open in a few days until it is')+'</dd><dt>Elections Send Email</dt><dd>'+(f.send?'<span class="chip ok">Set</span> The Outbox sends through it':'<span class="chip changes">Not set</span> Nothing can send until it is')+'</dd></div>',
+    top:'<p class="note" style="margin:0 0 12px">Paste each address once. In Power Automate, open the flow, select <b>When an HTTP request is received</b> (shown as manual) and copy <b>HTTP URL</b>.</p><div class="kv" style="margin-bottom:12px"><dt>Elections Forms</dt><dd>'+(f.forms?'<span class="chip ok">Set</span> The nomination, confirmation and ballot pages send to it':'<span class="chip changes">Not set</span> The forms say they open in a few days until it is')+'</dd><dt>Elections Send Email</dt><dd>'+((f.send||f.secret)?'<span class="chip ok">Set</span> The Outbox sends through it'+(f.secret?' (kept as a GitHub secret)':''):'<span class="chip changes">Not set</span> Nothing can send until it is')+'</dd></div>',
     fields:[{k:"forms",label:"Elections Forms: HTTP URL",type:"textarea",rows:3,get:()=>f.forms,hint:"Published for the public forms to use"},
-      {k:"send",label:"Elections Send Email: HTTP URL",type:"textarea",rows:3,get:()=>f.send,hint:"Kept private, in Elections HQ's records"},
+      {k:"send",label:"Elections Send Email: HTTP URL",type:"textarea",rows:3,get:()=>f.send,hint:f.secret?"Kept as the SEND_URL secret in elections-hq-data on GitHub, out of sight here. Leave this empty unless you want it kept here instead":"Kept private, in Elections HQ's records"},
       {k:"mailbox",label:"Elections Mailbox",get:()=>f.mailbox,hint:"The shared mailbox everything else sends from (shown to people as elections@mismo.org)"}],
     save:async v=>{ const clean=x=>String(x||"").trim().replace(/\s+/g,"");
       const forms=clean(v.forms), send=clean(v.send);
       if((forms && !/^https:\/\//.test(forms)) || (send && !/^https:\/\//.test(send))) throw new Error("Each address starts with https://");
-      const a=Object.assign({},S.settings.automation||{},{formsUrl:forms, sendUrl:send, mailbox:(v.mailbox||"elections@mba.org").trim()});
+      const a=Object.assign({},S.settings.automation||{},{formsUrl:forms, sendUrl:send, mailbox:(v.mailbox||"elections@mismo.org").trim()});
       await put("settings","automation",a);
       if(window.__hqPublic && window.__hqPublic.save){ try{ await window.__hqPublic.save("slates/forms.json",{endpoint:forms, at:new Date().toISOString()}); toast("Saved. The forms use the new address within a minute"); }catch(e){ toast("Saved here, but couldn't publish for the forms: "+(e.message||"try again"),6000); } }
       else toast("Saved. Publish from resources.mismo.org so the forms can use it"); }});
@@ -4051,9 +4067,9 @@ function openFlows(){ const f=flowState();
 const _renderFormsF = renderForms;
 renderForms = function(){ _renderFormsF(); const el=$("#page-forms"); if(!el) return; const f=flowState();
   const card=document.createElement("div"); card.className="card"; card.style.marginTop="22px";
-  card.innerHTML='<div class="ch"><h2>Flow Addresses</h2><span class="note">how the forms and the Outbox reach Power Automate</span><div class="r"><button class="btn sm'+(f.forms&&f.send?'':' pri')+'" type="button" id="fm-flows">'+(f.forms&&f.send?'Change':'Set Them')+'</button></div></div><div class="checks">'+
+  card.innerHTML='<div class="ch"><h2>Flow Addresses</h2><span class="note">how the forms and the Outbox reach Power Automate</span><div class="r"><button class="btn sm'+(f.forms&&(f.send||f.secret)?'':' pri')+'" type="button" id="fm-flows">'+(f.forms&&(f.send||f.secret)?'Change':'Set Them')+'</button></div></div><div class="checks">'+
     '<div class="chk"><span class="ct"><b>Elections Forms</b><small>'+(f.forms?'Set. Entries from the three public forms go through it into elections-hq-data.':'Not set yet. The forms say they open in a few days until it is.')+'</small></span></div>'+
-    '<div class="chk"><span class="ct"><b>Elections Send Email</b><small>'+(f.send?'Set. The Outbox sends through it, from '+esc(f.mailbox)+' or your own mailbox.':'Not set yet. Nothing in the Outbox can go out until it is.')+'</small></span></div></div>';
+    '<div class="chk"><span class="ct"><b>Elections Send Email</b><small>'+((f.send||f.secret)?'Set'+(f.secret?' (kept as a GitHub secret)':'')+'. The Outbox sends through it, from '+esc(f.mailbox)+' or your own mailbox.':'Not set yet. Nothing in the Outbox can go out until it is.')+'</small></span></div></div>';
   el.appendChild(card); $("#fm-flows",card).onclick=()=>openFlows(); };
 
 /* ======================= ELECTED VERSUS APPOINTED (decided October 30, 2026) =======================
@@ -4315,7 +4331,7 @@ async function wgShareResults(c){
 
 /* ---------- Request an Election (or edit one) ---------- */
 function wgNomRow(n){ n=n||{};
-  return '<div class="wgrow" style="display:grid;grid-template-columns:150px minmax(0,1.1fr) minmax(0,1.1fr) minmax(0,1.2fr) auto auto;gap:6px;align-items:center;margin-bottom:6px">'+
+  return '<div class="wgrow" data-nid="'+esc(n.id||"")+'" style="display:grid;grid-template-columns:150px minmax(0,1.1fr) minmax(0,1.1fr) minmax(0,1.2fr) auto auto;gap:6px;align-items:center;margin-bottom:6px">'+
     '<select data-w="position">'+WG_POS.map(p=>'<option'+(p===(n.position||"Chair")?" selected":"")+'>'+p+'</option>').join("")+'</select>'+
     '<input type="text" data-w="name" placeholder="Name" value="'+esc(n.name||"")+'"><input type="text" data-w="company" placeholder="Company" value="'+esc(n.company||"")+'">'+
     '<input type="text" data-w="email" placeholder="Email (optional)" value="'+esc(n.email||"")+'">'+
@@ -4324,7 +4340,7 @@ function wgNomRow(n){ n=n||{};
 function wgCountsHtml(rows, counts){ const ps=[...new Set(rows.map(r=>r.position))].sort((a,b)=>POSITIONS.indexOf(a)-POSITIONS.indexOf(b));
   return ps.length? ps.map(p=>{ const k=rows.filter(r=>r.position===p).length; const v=counts[p]!=null?counts[p]:(/^Co-/.test(p)?Math.min(2,k):1);
     return '<label style="display:flex;gap:8px;align-items:center;margin:0 14px 6px 0"><span>'+esc(p)+': elect</span><input type="number" min="1" max="9" data-wc="'+esc(p)+'" value="'+v+'" style="width:64px"></label>'; }).join("") : '<span class="note">Add a nominee first.</span>'; }
-function wgReadRows(b){ return $$(".wgrow",b).map(r=>{ const g=k=>r.querySelector('[data-w="'+k+'"]'); return {position:g("position").value, name:g("name").value.trim(), company:g("company").value.trim(), email:g("email").value.trim(), member:g("member").checked}; }).filter(r=>r.name); }
+function wgReadRows(b){ return $$(".wgrow",b).map(r=>{ const g=k=>r.querySelector('[data-w="'+k+'"]'); return {nid:r.dataset.nid||"", position:g("position").value, name:g("name").value.trim(), company:g("company").value.trim(), email:g("email").value.trim(), member:g("member").checked}; }).filter(r=>r.name); }
 function nextMonday(){ let d=add(T(),1); while(P(d).getDay()!==1) d=add(d,1); return d; }
 function openWGRequest(id){
   const c=id?S.cycles[id]:null; const me=(()=>{ try{ const cu=window.ResourcesSession&&window.ResourcesSession.current&&window.ResourcesSession.current(); return (cu&&cu.name)||""; }catch(e){ return ""; } })();
@@ -4355,17 +4371,23 @@ function openWGRequest(id){
       await put("cycles",cid,Object.assign({},c||{},{type:"wg", year:+v.ballotOpen.slice(0,4), group:v.group, gtype, facilitator:v.facilitator, connectEmail:v.connectEmail, requestedBy:v.requestedBy, requestedOn:v.requestedOn,
         closeTime:v.closeTime, emailTo:v.emailTo||"info@mismo.org", notes:v.notes, forms:{ballot:"auto"}, dates:Object.assign({},(c&&c.dates)||{},{ballotOpen:v.ballotOpen, ballotClose:v.ballotClose, announce:(c&&cdate(c,"announce"))||add(v.ballotClose,3)})}));
       /* seats, one per position */
+      if(!c && S.cycles[cid]) throw new Error("There's already an election for this group starting that day. Open it with Edit instead.");
+      const voted=c? votesOf(c).length>0 : false; const seatFor=p=>{ const ex=c&&seatsOf(c).find(s=>s.position===p); return ex?ex.id:cid+"__"+slugify(p); };
+      if(voted){ const oldN=vals("nominations").filter(n=>n.cycle===cid && !["withdrawn","declined"].includes(n.status)); const ids=new Set(rs.map(r=>r.nid).filter(Boolean));
+        const gone=oldN.filter(n=>!ids.has(n.id)); if(gone.length) throw new Error("Ballots are already in, so nominees can't be removed ("+gone.map(fullName).join(", ")+").");
+        const moved=rs.filter(r=>r.nid && S.nominations[r.nid] && (S.seats[S.nominations[r.nid].seat]||{}).position!==r.position); if(moved.length) throw new Error("Ballots are already in, so a nominee's position can't change ("+moved.map(r=>r.name).join(", ")+").");
+        if(rs.some(r=>!r.nid)) throw new Error("Ballots are already in, so new nominees can't be added to this election."); }
       const ps=[...new Set(rs.map(r=>r.position))]; const keepS=new Set();
-      for(const p of ps){ const sid=cid+"__"+slugify(p); keepS.add(sid); await put("seats",sid,Object.assign({},S.seats[sid]||{},{cycle:cid, group:v.group, position:p, count:cnt[p]||1, order:POSITIONS.indexOf(p), round:1, termYears:1})); }
-      for(const s of vals("seats").filter(s=>s.cycle===cid && !keepS.has(s.id))) await remove("seats",s.id);
+      for(const p of ps){ const sid=seatFor(p); keepS.add(sid); await put("seats",sid,Object.assign({},S.seats[sid]||{},{cycle:cid, group:v.group, position:p, count:cnt[p]||1, order:POSITIONS.indexOf(p), round:1, termYears:1})); }
+      if(!voted) for(const s of vals("seats").filter(s=>s.cycle===cid && !keepS.has(s.id))) await remove("seats",s.id);
       /* nominees, already accepted by the group */
-      const keepN=new Set(); const old=vals("nominations").filter(n=>n.cycle===cid);
-      for(const r of rs){ const sid=cid+"__"+slugify(r.position); const ex=old.find(n=>norm(fullName(n))===norm(r.name) && !keepN.has(n.id)); const nid=ex?ex.id:uid("n"); keepN.add(nid);
+      const keepN=new Set(); const old=vals("nominations").filter(n=>n.cycle===cid && !["withdrawn","declined"].includes(n.status));
+      for(const r of rs){ const sid=seatFor(r.position); const ex=(r.nid&&old.find(n=>n.id===r.nid)) || old.find(n=>norm(fullName(n))===norm(r.name) && !keepN.has(n.id)); const nid=ex?ex.id:uid("n"); keepN.add(nid);
         const parts=r.name.split(/\s+/); await put("nominations",nid,Object.assign({},ex||{},{cycle:cid, seat:sid, status:"confirmed", aware:"yes", source:"request", first:parts.slice(0,-1).join(" ")||parts[0], last:parts.length>1?parts[parts.length-1]:"", email:r.email, company:r.company, member:r.member?"yes":"no", receivedAt:(ex&&ex.receivedAt)||new Date().toISOString()})); }
       for(const n of old.filter(n=>!keepN.has(n.id))) await remove("nominations",n.id);
       const cy=S.cycles[cid]; await wgSyncDrafts(cy); await publishSlate(cy); },
     savedMsg:c?"Saved · ballot and Outbox drafts updated":"Election set up · ballot published and drafts in the Outbox",
-    del:c?async()=>{ for(const s of vals("seats").filter(s=>s.cycle===c.id)) await remove("seats",s.id); for(const n of vals("nominations").filter(n=>n.cycle===c.id)) await remove("nominations",n.id);
+    del:c?async()=>{ if(votesOf(c).length) throw new Error("This election has ballots, so it can't be deleted."); for(const s of vals("seats").filter(s=>s.cycle===c.id)) await remove("seats",s.id); for(const n of vals("nominations").filter(n=>n.cycle===c.id)) await remove("nominations",n.id);
       for(const o of vals("outbox").filter(o=>o.cycle===c.id && ["draft","scheduled"].includes(o.status))) await remove("outbox",o.id); await remove("cycles",c.id); }:null, delLabel:"Delete", delDone:"Election deleted"});
 }
 function openWGBallots(c){
