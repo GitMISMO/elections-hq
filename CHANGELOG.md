@@ -2,6 +2,12 @@
 
 One line per change people would notice. Newest first.
 
+## November 8, 2026 (later)
+- Flood guard on the public forms: a third entry from one email address in a day, or 60+ entries in ten minutes, is kept but held for staff (no outside service needed).
+- Emailed ballot receipts switched on.
+- Voter Lists › Paste a List takes the new Aptify report ElectionsHQ_VotingReps as it comes.
+- The Outbox job runs right away when you press Send and once an hour for automatic emails (was every 15 minutes).
+
 ## November 8, 2026 (evening)
 - Past Elections page: elections finished more than two years ago move into their own archive files each January 15; nothing is deleted, and each opens read-only with results, counts, fingerprint and downloads.
 - Audit Trail download on every election's results (and workgroup elections), also attached to the Request to Certify.
