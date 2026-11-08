@@ -1679,6 +1679,9 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
     <button type="button" data-hq="forms" title="Public Forms">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h5"/></svg>
       <span>Public Forms</span></button>
+    <button type="button" data-hq="health" title="System Health">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg>
+      <span>System Health</span><b class="nbadge" id="nb-health" hidden></b></button>
     <div class="navsep">Help</div>
     <button type="button" data-hq="help" title="Help">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 014.8.9c0 1.7-2.4 2.2-2.4 3.8M12 17.2v.01"/></svg>
@@ -1714,6 +1717,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
   <section class="page" id="page-roster" hidden></section>
   <section class="page" id="page-voters" hidden></section>
   <section class="page" id="page-forms" hidden></section>
+  <section class="page" id="page-health" hidden></section>
   <section class="page" id="page-help" hidden></section>
 </main>
 
@@ -1728,6 +1732,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 <div class="toast" id="toast" hidden></div>
 
 <script>
+const BUILD={at:"2026-11-08T18:06:01Z",fp:"eced78b9"};
 
 /* ================= the public forms (shared by Elections HQ and the website copies) =================
    EF.nominate(el, {elections, submit, onDone})   elections: [{cycle, type, name, open, closes, groups:[{name, positions:[{seat, position}]}], seats:[{seat, position}], boardSeats}]
@@ -1760,7 +1765,7 @@ var EF = (function(){
       '<fieldset><legend id="ef-stlg">A few words for the ballot</legend><div class="field wide"><label for="ef-statement">Why this person is a good fit <span class="efn">(a few sentences; shown to voters)</span></label><textarea id="ef-statement" name="statement" rows="4" maxlength="1200"></textarea></div></fieldset>'+
       '<fieldset><legend>Before you send it</legend><label class="ack"><input type="checkbox" name="ack"> <span>The nominee works for a MISMO member company and can take part in the meetings this role needs.</span></label></fieldset>'+
       '<div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>'+
-      '<button class="btn pri" type="submit" id="ef-go">Send the Nomination</button><div class="err" id="ef-err" role="alert"></div></form>';
+      '<div class="efn" style="margin:0 0 12px">Who sees this: the MISMO staff running the election. If the nomination is accepted and the nominee agrees, their name, company, title and statement appear on the public ballot.</div><button class="btn pri" type="submit" id="ef-go">Send the Nomination</button><div class="err" id="ef-err" role="alert"></div></form>';
     var f=el.querySelector("form");
     function seatBox(){
       var cy=radio(f,"cycle"); var x=open.filter(function(o){ return o.cycle===cy; })[0]; var box=f.querySelector("#ef-seat"); var fs=f.querySelector("#ef-seatbox");
@@ -1795,7 +1800,7 @@ var EF = (function(){
         nominee:{first:val(f,"first"), last:val(f,"last"), email:val(f,"email"), company:val(f,"company"), title:val(f,"title")},
         self:self, nominator: self?null:{name:val(f,"byFirst")+" "+val(f,"byLast"), email:val(f,"byEmail"), company:val(f,"byCompany")},
         aware: self?"yes":(radio(f,"aware")||"no"), statement:val(f,"statement"), submittedAt:new Date().toISOString(),
-        hp: !!val(f,"website") || (Date.now()-started)<4000};
+        hp: !!val(f,"website")};
       var b=f.querySelector("#ef-go"); b.disabled=true; b.textContent="Sending…";
       Promise.resolve(cfg.submit(rec)).then(function(){
         el.innerHTML='<div class="ef">'+hero+'<div class="done"><b>Thank you. Your nomination is in.</b>MISMO staff will review it and confirm with '+(self?"you":e(rec.nominee.first))+' before the ballot goes out. Questions? Write to elections@mismo.org.<div style="margin-top:12px"><button class="btn" type="button" id="ef-again">Nominate Someone Else</button></div></div></div>';
@@ -1815,7 +1820,7 @@ var EF = (function(){
       '<fieldset><legend>About you</legend><div class="fgrid">'+fld("first","First Name","text",true,"given-name")+fld("last","Last Name","text",true,"family-name")+fld("email","Work Email","email",true,"email")+fld("company","Company","text",true,"organization")+fld("title","Job Title","text",false,"organization-title")+'</div></fieldset>'+
       (multi?'<fieldset><legend>Which '+GL+' are you voting in?</legend><div class="field"><select name="group" id="ef-g" required><option value="">Choose one</option>'+sl.groups.map(function(g){ return '<option>'+e(g.name)+'</option>'; }).join("")+'</select></div><div class="efn" style="margin-top:6px">Taking part in more than one? Send one ballot for each.</div></fieldset>':'')+
       '<fieldset><legend>Your votes</legend><div id="ef-seats">'+(multi?'<div class="efn">Choose the '+GL+' first.</div>':'')+'</div></fieldset>'+
-      '<fieldset><legend>Before you send it</legend><label class="ack"><input type="checkbox" name="ack"> <span>I\'m casting this ballot for my company, and my company is sending only one'+(sl.type==="aof"?' for this '+GL:'')+'.</span></label></fieldset>'+
+      '<fieldset><legend>Before you send it</legend><label class="ack"><input type="checkbox" name="ack"> <span>I\'m casting this ballot for my company, and my company is sending only one'+(sl.type==="aof"?' for this '+GL:'')+'.</span></label><div class="efn" style="margin-top:8px">Who sees this: the MISMO staff running the election see your ballot, including your choices. It is used only to count votes and confirm one vote per company.</div></fieldset>'+
       '<div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>'+
       '<button class="btn pri" type="submit" id="ef-go">Cast My Ballot</button><div class="err" id="ef-err" role="alert"></div></form>';
     var f=el.querySelector("form");
@@ -1841,7 +1846,7 @@ var EF = (function(){
       [].forEach.call(f.querySelectorAll(".seatq[data-seat]"),function(q){ var picks=[].map.call(q.querySelectorAll("input:checked"),function(i){ return i.value; }).filter(function(v){ return v!=="abstain"; }); choices[q.dataset.seat]=picks; if(q.querySelector("input:checked")) any=true; });
       if(!any) return void(er.textContent="Choose at least one person. Leave a position blank if you don't want to vote for it.");
       if(!val(f,"ack")) return void(er.textContent="Please tick the box before sending.");
-      var rec={id:id("v"), kind:"ballot", cycle:sl.cycle, group:g, voter:{first:val(f,"first"), last:val(f,"last"), email:val(f,"email"), company:val(f,"company"), title:val(f,"title")}, code:cfg.code||"", choices:choices, submittedAt:new Date().toISOString(), hp: !!val(f,"website") || (Date.now()-started)<4000};
+      var rec={id:id("v"), kind:"ballot", cycle:sl.cycle, group:g, voter:{first:val(f,"first"), last:val(f,"last"), email:val(f,"email"), company:val(f,"company"), title:val(f,"title")}, code:cfg.code||"", choices:choices, submittedAt:new Date().toISOString(), hp: !!val(f,"website")};
       var b=f.querySelector("#ef-go"); b.disabled=true; b.textContent="Sending…";
       Promise.resolve(cfg.submit(rec)).then(function(){
         el.innerHTML='<div class="ef">'+hero+'<div class="done"><b>Thank you. Your ballot is in.</b>Results will be announced '+(sl.announce?e(fmt(sl.announce)):"soon")+'.'+(multi?'<div style="margin-top:12px"><button class="btn" type="button" id="ef-again">Vote in Another '+GL+'</button></div>':'')+'</div></div>';
@@ -2028,7 +2033,7 @@ async function copyText(txt, label){
 }
 
 /* ================= the shared records ================= */
-const S = {cycles:{}, seats:{}, nominations:{}, nomsubs:{}, nomreviews:{}, votes:{}, voteflags:{}, tasks:{}, leaders:{}, groups:{}, voters:{}, comms:{}, slate:{}, onboard:{}, settings:{}, mt:{}, outbox:{}, outsent:{}, responses:{}, mailin:{}, mtpush:{}, appointments:{}};
+const S = {cycles:{}, seats:{}, nominations:{}, nomsubs:{}, nomreviews:{}, votes:{}, voteflags:{}, tasks:{}, leaders:{}, groups:{}, voters:{}, comms:{}, slate:{}, onboard:{}, settings:{}, mt:{}, outbox:{}, outsent:{}, responses:{}, mailin:{}, mtpush:{}, appointments:{}, handvotes:{}, trash:{}};
 let DB=null, DL=null, LIVE=false, LOADED=new Set(), CANWRITE=true;
 function vals(c){ return Object.values(S[c]); }
 async function getClaude(){
@@ -2139,7 +2144,7 @@ function subsOf(c){ return vals("nomsubs").filter(x=>x.cycle===c.id); }
 function pendingSubs(c){ return vals("nomsubs").filter(x=>(!c||x.cycle===c.id) && !S.nomreviews[x.id]); }
 
 /* ballots: one company, one vote, in each CoP (or each election for the others) */
-function votesOf(c){ return vals("votes").filter(v=>v.cycle===c.id).sort((a,b)=>(a.submittedAt||"")<(b.submittedAt||"")?-1:1); }
+function votesOf(c){ return vals("votes").concat(vals("handvotes")).filter(v=>v.cycle===c.id).sort((a,b)=>(a.submittedAt||"")<(b.submittedAt||"")?-1:1); }
 function voterRoll(c){ const list=c.voterList||(c.type==="goc"?"mvr":""); return list? vals("voters").filter(v=>v.list===list) : []; }
 /* the moment a date and time happen in Eastern time, as an ISO string */
 function etMoment(d,tm){ if(!d) return ""; const guess=new Date(d+"T"+(tm||"00:00")+":00Z");
@@ -2578,9 +2583,9 @@ function openVote(id,c){
   const lines=Object.entries(v.choices||{}).map(([sid,picks])=>{ const s=S.seats[sid]; return '<dt>'+esc(s?s.position:"Seat")+'</dt><dd>'+((picks||[]).length?(picks||[]).map(i=>esc(fullName(S.nominations[i]||{})||"(removed nominee)")).join(", "):'<span class="note">Abstained</span>')+'</dd>'; }).join("");
   const same=votesOf(c).filter(x=>x.id!==id && (voteStatus(c)[x.id]||{}).key===st.key);
   openPane({eye:"Ballot · "+TYPES[c.type].name, title:fullName(v.voter||{}), data:{}, noFocus:true,
-    top:'<div class="kv" style="margin-bottom:14px"><dt>Company</dt><dd>'+esc((v.voter||{}).company||"")+'</dd><dt>Email</dt><dd>'+esc((v.voter||{}).email||"")+'</dd><dt>Title</dt><dd>'+esc((v.voter||{}).title||"—")+'</dd>'+(v.group?'<dt>CoP</dt><dd>'+esc(v.group)+'</dd>':'')+'<dt>Received</dt><dd>'+esc(fL((v.submittedAt||"").slice(0,10)))+'</dd><dt>Status</dt><dd>'+chip(VSTAT,st.k||"counted")+' '+esc(st.why||"")+'</dd></div>'+
+    top:'<div class="kv" style="margin-bottom:14px"><dt>Company</dt><dd>'+esc((v.voter||{}).company||"")+'</dd><dt>Email</dt><dd>'+esc((v.voter||{}).email||"")+'</dd><dt>Title</dt><dd>'+esc((v.voter||{}).title||"—")+'</dd>'+(v.group?'<dt>CoP</dt><dd>'+esc(v.group)+'</dd>':'')+'<dt>Received</dt><dd>'+esc(fL(localDay(v.submittedAt)))+'</dd><dt>Status</dt><dd>'+chip(VSTAT,st.k||"counted")+' '+esc(st.why||"")+'</dd></div>'+
       '<div class="fsec">Votes</div><div class="kv">'+(lines||'<dd class="note">No choices.</dd>')+'</div>'+
-      (same.length?'<div class="fsec">Other Ballots From This Company</div><div class="kv">'+same.map(x=>'<dt>'+esc(fullName(x.voter||{}))+'</dt><dd>'+esc(fS((x.submittedAt||"").slice(0,10)))+' · '+esc(((voteStatus(c)[x.id]||{}).k)||"")+'</dd>').join("")+'</div><p class="note">One vote per company'+(c.type==="cop"?" in each CoP":"")+'. Ask the company which ballot stands, or have it resubmit one, then count that one here.</p>':''),
+      (same.length?'<div class="fsec">Other Ballots From This Company</div><div class="kv">'+same.map(x=>'<dt>'+esc(fullName(x.voter||{}))+'</dt><dd>'+esc(fS(localDay(x.submittedAt)))+' · '+esc(((voteStatus(c)[x.id]||{}).k)||"")+'</dd>').join("")+'</div><p class="note">One vote per company'+(c.type==="cop"?" in each CoP":"")+'. Ask the company which ballot stands, or have it resubmit one, then count that one here.</p>':''),
     buttons:[{label:"Count This Ballot", run:async()=>{ await put("voteflags",id,{status:"counted", reason:same.length?"Chosen for its company":"Checked by staff", at:new Date().toISOString()}); closePane(true); toast("Counted"); }},
       {label:"Don't Count It", run:async()=>{ await put("voteflags",id,{status:"excluded", reason:"Set aside by staff", at:new Date().toISOString()}); closePane(true); toast("Set aside"); }},
       {label:"Back to Automatic", run:async()=>{ await remove("voteflags",id); closePane(true); }}] });
@@ -2609,7 +2614,7 @@ function openBallotForm(c,opts){
   const sl=slateOf(c); sl.announce=cdate(c,"announce");
   openPane({eye:opts.byHand?"Ballot Sent by Email":"Public Ballot · Preview", title:sl.name, data:{}, noFocus:true, noDirty:true,
     extra:(opts.byHand?'<p class="note">For a voter who couldn\'t use the online ballot and emailed their votes to info@mismo.org. Enter it exactly as they sent it.</p>':'')+'<div id="ef-host"></div>',
-    after:b=>{ EF.ballot($("#ef-host",b),{slate:sl, submit:rec=>opts.byHand? put("votes",rec.id,Object.assign({},rec,{source:"email", hp:false})) : (toast("Preview only: this ballot was not saved"), Promise.resolve())}); }});
+    after:b=>{ EF.ballot($("#ef-host",b),{slate:sl, submit:rec=>opts.byHand? put("handvotes",rec.id,Object.assign({},rec,{source:"email", hp:false})) : (toast("Preview only: this ballot was not saved"), Promise.resolve())}); }});
 }
 async function publishNominate(){
   const cfg=nominateConfig();
@@ -3111,7 +3116,7 @@ function renderNoms(){
   const seatTxt=n=>{ const s=S.seats[n.seat]; const c=S.cycles[n.cycle]; return (c?TYPES[c.type].short+" · ":"")+(s?seatLabel(s):""); };
   const ncard=n=>'<div class="kcard" data-kid="'+esc(n.id)+'" data-on="'+esc(n.id)+'" draggable="true"><b>'+esc(fullName(n))+'</b><small>'+esc(n.company||"")+'</small><div class="kt"><span class="chip k">'+esc(seatTxt(n))+'</span>'+(n.status==="received"&&n.aware!=="yes"?'<span class="note">not confirmed</span>':'')+(n.member==="no"?'<span class="chip changes">Not a member</span>':'')+'</div></div>';
   const icard=x=>{ const n=x.nominee||{}; const fl=subFlags(x); const s=S.seats[x.seat]; const c=S.cycles[x.cycle]; const sp=fl.flags.some(([l])=>/spam/i.test(l));
-    return '<div class="kcard'+(sp?" spam":fl.flags.length?" flag":"")+'" data-kid="'+esc(x.id)+'" draggable="true"><b>'+esc(fullName(n)||"(no name)")+'</b><small>'+esc(n.company||"")+'</small><small>'+esc((c?TYPES[c.type].short+" · ":"")+(s?seatLabel(s):(x.group||"")))+'</small><small>'+esc(x.self?"Self-nomination":"By "+((x.nominator||{}).name||""))+' · '+esc(fS((x.submittedAt||"").slice(0,10)))+'</small>'+
+    return '<div class="kcard'+(sp?" spam":fl.flags.length?" flag":"")+'" data-kid="'+esc(x.id)+'" draggable="true"><b>'+esc(fullName(n)||"(no name)")+'</b><small>'+esc(n.company||"")+'</small><small>'+esc((c?TYPES[c.type].short+" · ":"")+(s?seatLabel(s):(x.group||"")))+'</small><small>'+esc(x.self?"Self-nomination":"By "+((x.nominator||{}).name||""))+' · '+esc(fS(localDay(x.submittedAt)))+'</small>'+
       (fl.flags.length?'<div class="kt">'+fl.flags.map(([l,k])=>'<span class="chip '+k+'">'+esc(l)+'</span>').join("")+'</div>':'')+
       '<div class="kacts"><button class="btn sm pri" type="button" data-acc="'+esc(x.id)+'">Accept</button><button class="btn sm" type="button" data-rv="'+esc(x.id)+'|duplicate">Duplicate</button><button class="btn sm danger" type="button" data-rv="'+esc(x.id)+'|spam">Spam</button></div></div>'; };
   const by=st=>all.filter(n=>st.includes(n.status)).sort((a,b)=>byName(seatTxt(a),seatTxt(b))||byName(fullName(a),fullName(b))).map(ncard);
@@ -3157,10 +3162,10 @@ function renderBallots(){
       tile(vs.length,"Ballots In","")+tile(cnt("counted"),"Counted",plural(companies,"company","companies"))+tile(cnt("hold"),"On Hold","need a decision",{hot:cnt("hold")>0})+tile(cnt("excluded"),"Not Counted","spam or set aside"))+
     (held.length?'<div class="card"><div class="ch"><h2>Needs a Decision</h2><span class="cnt">'+held.length+'</span><span class="note">choose the ballot that stands for each company</span></div><div class="cb"><div class="cgrid wide">'+
       Object.values(groups).map(g=>{ const v0=g[0]; return '<div class="rcard"><h3>'+esc((v0.voter||{}).company||"No company given")+(v0.group?' <span class="chip k">'+esc(v0.group)+'</span>':'')+'</h3><div class="note">'+esc(st[v0.id].why)+'</div>'+
-        g.map(v=>'<div class="rline" style="grid-template-columns:minmax(0,1fr) auto"><span class="rw"><b>'+esc(fullName(v.voter||{}))+'</b> <span class="note">'+esc(fS((v.submittedAt||"").slice(0,10)))+'</span></span><span style="display:flex;gap:5px"><button class="btn sm" type="button" data-vote="'+esc(v.id)+'">Look</button><button class="btn sm pri" type="button" data-keep="'+esc(v.id)+'">Count This One</button></span></div>').join("")+'</div>'; }).join("")+'</div></div></div>':'')+
+        g.map(v=>'<div class="rline" style="grid-template-columns:minmax(0,1fr) auto"><span class="rw"><b>'+esc(fullName(v.voter||{}))+'</b> <span class="note">'+esc(fS(localDay(v.submittedAt)))+'</span></span><span style="display:flex;gap:5px"><button class="btn sm" type="button" data-vote="'+esc(v.id)+'">Look</button><button class="btn sm pri" type="button" data-keep="'+esc(v.id)+'">Count This One</button></span></div>').join("")+'</div>'; }).join("")+'</div></div></div>':'')+
     resultsHtml(c)+
     '<div class="card"><div class="ch"><h2>Every Ballot</h2><span class="cnt">'+vs.length+'</span><div class="r">'+findBox("bl-q",q,"Find a voter or company")+'</div></div><div class="cb flush"><div class="tw"><table class="t"><thead><tr><th>Received</th><th>Voter</th><th>Company</th>'+(k==="cop"?'<th>CoP</th>':'')+'<th>Matched</th><th>Status</th></tr></thead><tbody>'+
-      (list.length? list.slice(pg.from,pg.to).map(v=>{ const s=st[v.id]||{}; return '<tr class="click" data-vote="'+esc(v.id)+'"><td>'+esc(fS((v.submittedAt||"").slice(0,10)))+'</td><td><b>'+esc(fullName(v.voter||{}))+'</b><span class="t2">'+esc((v.voter||{}).email||"")+'</span></td><td>'+esc((v.voter||{}).company||"")+'</td>'+(k==="cop"?'<td>'+esc(v.group||"")+'</td>':'')+'<td>'+(s.verified?'<span class="chip ok">Personal Link</span>':v.source==="email"?'<span class="chip k">By Email</span>':'<span class="note">By name</span>')+'</td><td>'+chip(VSTAT,s.k||"counted")+(s.why?'<span class="t2">'+esc(s.why)+'</span>':'')+'</td></tr>'; }).join("")
+      (list.length? list.slice(pg.from,pg.to).map(v=>{ const s=st[v.id]||{}; return '<tr class="click" data-vote="'+esc(v.id)+'"><td>'+esc(fS(localDay(v.submittedAt)))+'</td><td><b>'+esc(fullName(v.voter||{}))+'</b><span class="t2">'+esc((v.voter||{}).email||"")+'</span></td><td>'+esc((v.voter||{}).company||"")+'</td>'+(k==="cop"?'<td>'+esc(v.group||"")+'</td>':'')+'<td>'+(s.verified?'<span class="chip ok">Personal Link</span>':v.source==="email"?'<span class="chip k">By Email</span>':'<span class="note">By name</span>')+'</td><td>'+chip(VSTAT,s.k||"counted")+(s.why?'<span class="t2">'+esc(s.why)+'</span>':'')+'</td></tr>'; }).join("")
       : '<tr><td colspan="6" class="note">'+(loading("votes")?"Loading…":(q?"No ballots match.":"No ballots yet."))+'</td></tr>')+'</tbody></table></div>'+pg.html+'</div></div>';
   wireYear(el,"bl-y"); wireGo(el); wireResults(el,c); wirePager(el,renderBallots); wireFind2(el,"bl-q","ballotQ",renderBallots);
   $$("[data-bt]",el).forEach(b=>b.onclick=()=>{ SUB.ballotsType=b.dataset.bt; UI.pages={}; renderBallots(); });
@@ -4406,7 +4411,7 @@ function openWGBallots(c){
   const vs=votesOf(c).slice().reverse(); const st=voteStatus(c);
   openPane({eye:"Ballots · "+c.group, title:plural(vs.length,"Ballot"), data:{}, noFocus:true, noDirty:true,
     extra:'<div class="tw"><table class="t"><thead><tr><th>Received</th><th>Voter</th><th>Company</th><th>Status</th><th></th></tr></thead><tbody>'+
-      (vs.length? vs.map(v=>{ const s=st[v.id]||{}; return '<tr class="click" data-wv="'+esc(v.id)+'"><td>'+esc(fS((v.submittedAt||"").slice(0,10)))+'</td><td><b>'+esc(fullName(v.voter||{}))+'</b><span class="t2">'+esc((v.voter||{}).email||"")+(v.source==="email"?" · by email":"")+'</span></td><td>'+esc((v.voter||{}).company||"")+'</td><td>'+chip(VSTAT,s.k||"counted")+' <span class="note">'+esc(s.why||"")+'</span></td><td>'+(s.k==="hold"?'<button class="btn sm" type="button" data-wkeep="'+esc(v.id)+'">Count This One</button>':'')+'</td></tr>'; }).join("")
+      (vs.length? vs.map(v=>{ const s=st[v.id]||{}; return '<tr class="click" data-wv="'+esc(v.id)+'"><td>'+esc(fS(localDay(v.submittedAt)))+'</td><td><b>'+esc(fullName(v.voter||{}))+'</b><span class="t2">'+esc((v.voter||{}).email||"")+(v.source==="email"?" · by email":"")+'</span></td><td>'+esc((v.voter||{}).company||"")+'</td><td>'+chip(VSTAT,s.k||"counted")+' <span class="note">'+esc(s.why||"")+'</span></td><td>'+(s.k==="hold"?'<button class="btn sm" type="button" data-wkeep="'+esc(v.id)+'">Count This One</button>':'')+'</td></tr>'; }).join("")
         : '<tr><td colspan="5" class="note">No ballots yet.</td></tr>')+'</tbody></table></div>',
     after:b=>{ $$("[data-wv]",b).forEach(r=>r.onclick=e=>{ if(e.target.closest("[data-wkeep]")) return; openVote(r.dataset.wv,c); });
       $$("[data-wkeep]",b).forEach(x=>x.onclick=async()=>{ await put("voteflags",x.dataset.wkeep,{status:"counted", reason:"Chosen for its company", at:new Date().toISOString()}); toast("Counted; the company's other ballots are set aside"); openWGBallots(S.cycles[c.id]); }); }});
@@ -4527,6 +4532,85 @@ openOut = function(id){ _openOutRetry(id); const s=S.outsent[id]; if(!s || !["fa
   b.onclick=async()=>{ if(b.dataset.sure){ await retryOut(id); closePane(true); } else { b.dataset.sure="1"; b.textContent="Press Again to Send"; setTimeout(()=>{ if(b){ delete b.dataset.sure; b.textContent=s.status==="partial"?"Send to the Rest":"Try Again"; } },3500); } };
   f.insertBefore(b,f.firstChild); };
 
+/* ======================= SAFETY NET (November 8, 2026) =======================
+   - Archive, never delete: anything removed is set aside in "trash" and can be brought back
+     from System Health.
+   - An out-of-date copy can't save over newer work: if someone else saved a record after you
+     opened it, your save stops and says who and when.
+   - System Health: saving, both flows, emails waiting or failed, the last nomination, ballot and
+     answer received, Meeting Trackers, the size of the ballot file, and what was removed.
+   - The version (build time and fingerprint) shows under Saving. */
+function localDay(iso){ if(!iso) return ""; try{ return new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(iso)); }catch(e){ return String(iso).slice(0,10); } }
+function whenET(iso){ if(!iso) return "never"; try{ return new Date(iso).toLocaleString("en-US",{timeZone:"America/New_York",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+" ET"; }catch(e){ return iso; } }
+
+const _putStale = put;
+put = async function(col,id,data){
+  const cur=S[col]&&S[col][id];
+  if(cur && data && data.updatedAt && cur.updatedAt && cur.updatedAt>data.updatedAt && cur.updatedBy && cur.updatedBy!==whoAmI()){
+    const e=new Error(cur.updatedBy+" changed this at "+whenET(cur.updatedAt)+", after you opened it. Close it and open it again to see their change, then make yours.");
+    toast(e.message,9000); throw e; }
+  return _putStale(col,id,data);
+};
+const _removeForGood = remove;
+remove = async function(col,id){
+  const cur=S[col]&&S[col][id];
+  if(cur && col!=="trash"){ const d=Object.assign({},cur); delete d.id;
+    try{ await _putStale("trash",col+"__"+id,{col, docId:id, doc:d, at:new Date().toISOString(), by:whoAmI()}); }catch(e){ toast("Couldn't set it aside, so it wasn't removed",5000); return; } }
+  return _removeForGood(col,id);
+};
+async function bringBack(tid){ const t=S.trash[tid]; if(!t) return; await _putStale(t.col,t.docId,t.doc); await _removeForGood("trash",tid); toast("Brought back"); }
+const COL_LABEL={cycles:"Election",seats:"Seat",nominations:"Nominee",nomsubs:"Form nomination",nomreviews:"Nomination review",handvotes:"Ballot typed in",voteflags:"Counting decision",tasks:"Task",leaders:"Leader",groups:"Group",voters:"Voter",comms:"Message text",outbox:"Email",appointments:"Appointment",settings:"Setting",onboard:"Onboarding"};
+function trashName(t){ const d=t.doc||{}; return d.subject||d.title||d.name||(d.first||d.last?[d.first,d.last].filter(Boolean).join(" "):"")||d.group||d.position||t.docId; }
+
+/* what's wrong right now, worst first: [level, title, detail, go] */
+let HEALTH_FORMS=null;
+function healthChecks(){
+  const out=[]; const now=Date.now(); const f=flowState();
+  out.push(LIVE&&CANWRITE? ["ok","Saving","Connected; changes are shared with the team."] : ["bad","Saving",LIVE?"View-only access: nothing you change here is saved.":"Not connected: changes won't be kept. Reload the page."]);
+  out.push(HEALTH_FORMS===null? ["wait","Elections Forms flow","Checking…"] : HEALTH_FORMS? ["ok","Elections Forms flow","Published; nominations, answers and ballots can come in."] : ["bad","Elections Forms flow","Not published, so the public forms can't save anything. Set it in Public Forms › Flow Addresses.","forms"]);
+  out.push((f.secret||f.send)? ["ok","Email flow","Set"+(f.secret?" (kept as a GitHub secret)":"")+"; sends from "+f.mailbox+" or your mailbox."] : ["bad","Email flow","Not set, so nothing in the Outbox can go out.","forms"]);
+  const stuck=vals("outbox").filter(o=>(o.status==="send"||o.status==="approved") && !S.outsent[o.id] && o.updatedAt && now-Date.parse(o.updatedAt)>30*60000);
+  const going=vals("outsent").filter(s=>s.status==="sending" && s.at && now-Date.parse(s.at)>30*60000);
+  if(stuck.length||going.length) out.push(["bad","Emails waiting",plural(stuck.length+going.length,"email")+" pressed Send more than 30 minutes ago and not sent yet. The GitHub sending job may be stopped.","outbox"]);
+  const failed=vals("outsent").filter(s=>s.status==="failed"||s.status==="partial");
+  const open=failed.filter(s=>{ const o=S.outbox[s.id]; return o && !vals("outbox").some(x=>x.retryOf===s.id); });
+  if(open.length) out.push(["warn","Emails that didn't go",plural(open.length,"email")+" failed or stopped part way. Open each in the Outbox to try again.","outbox"]);
+  const lastOf=(col,k)=>vals(col).map(x=>x[k]||x.receivedAt||x.submittedAt||x.at||"").filter(Boolean).sort().pop()||"";
+  const lastNom=lastOf("nomsubs","receivedAt"), lastVote=lastOf("votes","receivedAt"), lastAns=lastOf("responses","at"), lastSent=vals("outsent").filter(s=>s.status==="sent").map(s=>s.at).sort().pop()||"";
+  const votingNow=vals("cycles").filter(c=>{ const w=ballotWindow(c); const t=new Date().toISOString(); return w.opens && w.closes && t>=w.opens && t<=w.closes; });
+  if(votingNow.length){ const quiet=!lastVote || now-Date.parse(lastVote)>48*3600000; out.push([quiet?"warn":"ok","Ballots",(quiet?"Voting is open ("+votingNow.map(c=>c.group||TYPES[c.type].name).join(", ")+") but no ballot has come in for 2 days. ":"")+"Last ballot received: "+whenET(lastVote)+".","ballots"]); }
+  else out.push(["ok","Ballots","No voting open right now. Last ballot received: "+whenET(lastVote)+"."]);
+  out.push(["ok","Nominations","Last nomination from the form: "+whenET(lastNom)+". Last nominee answer: "+whenET(lastAns)+".","noms"]);
+  out.push(["ok","Email","Last email sent: "+whenET(lastSent)+".","outbox"]);
+  out.push([/Not linked/.test(mtSynced())?"warn":"ok","Meeting Trackers",mtSynced()+"."]);
+  const size=JSON.stringify(S.votes||{}).length+JSON.stringify(S.nomsubs||{}).length;
+  out.push([size>700000?"warn":"ok","Size of the ballot and nomination files",Math.round(size/1024)+" KB of about 1,000 KB the save relay can read"+(size>700000?". Close to the limit: older elections should be moved out.":".")]);
+  return out;
+}
+const HLV={ok:["OK","ok"],warn:["Look at This","review"],bad:["Needs Fixing","changes"],wait:["Checking","k"]};
+function renderHealth(){
+  const el=$("#page-health"); const ch=healthChecks(); const order={bad:0,warn:1,wait:2,ok:3}; ch.sort((a,b)=>order[a[0]]-order[b[0]]);
+  const probs=ch.filter(c=>c[0]==="bad"||c[0]==="warn").length;
+  const tr=vals("trash").sort((a,b)=>(b.at||"").localeCompare(a.at||"")); const pg=pager("trash",tr.length,12);
+  el.innerHTML=phead("Records","System Health","Whether everything Elections HQ depends on is working, and what was removed lately.","")+
+    band(fL(T()), tile(probs,"Need a Look",probs?"see below":"all clear",{hot:probs>0})+tile(LIVE&&CANWRITE?"On":"Off","Saving",LIVE&&CANWRITE?"shared with the team":"changes not kept",{hot:!(LIVE&&CANWRITE)})+tile(tr.length,"Removed","can be brought back")+tile(typeof BUILD!=="undefined"?BUILD.fp:"—","Version",typeof BUILD!=="undefined"?"built "+whenET(BUILD.at):""))+
+    '<div class="card"><div class="ch"><h2>Checks</h2><span class="note">worst first</span></div><div class="checks">'+
+      ch.map(([lv,t,d,go])=>'<div class="chk"><span class="ct"><b>'+esc(t)+'</b> '+chip(HLV,lv)+'<small>'+esc(d)+'</small></span>'+(go&&lv!=="ok"?'<button class="btn sm" type="button" data-go="'+esc(go)+'">Open</button>':'')+'</div>').join("")+'</div></div>'+
+    '<div class="card" style="margin-top:22px"><div class="ch"><h2>Recently Removed</h2><span class="cnt">'+tr.length+'</span><span class="note">nothing is deleted for good; bring anything back here</span></div><div class="cb flush"><div class="tw"><table class="t"><thead><tr><th>Removed</th><th>What</th><th>By</th><th></th></tr></thead><tbody>'+
+      (tr.length? tr.slice(pg.from,pg.to).map(t=>'<tr><td>'+esc(whenET(t.at))+'</td><td><b>'+esc(trashName(t))+'</b><span class="t2">'+esc(COL_LABEL[t.col]||t.col)+'</span></td><td>'+esc(t.by||"")+'</td><td><button class="btn sm" type="button" data-back="'+esc(t.id)+'">Bring Back</button></td></tr>').join("") : '<tr><td colspan="4" class="note">Nothing removed.</td></tr>')+
+      '</tbody></table></div>'+pg.html+'</div></div>';
+  wireGo(el); wirePager(el,renderHealth);
+  $$("[data-back]",el).forEach(b=>b.onclick=async()=>{ if(b.dataset.sure){ await bringBack(b.dataset.back); } else { b.dataset.sure="1"; b.textContent="Press Again"; setTimeout(()=>{ if(b){ delete b.dataset.sure; b.textContent="Bring Back"; } },3500); } });
+  if(HEALTH_FORMS===null) fetch((location.protocol.indexOf("http")===0?"":"https://resources.mismo.org")+"/elections-hq/slates/forms.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.ok?r.json():{}).then(j=>{ HEALTH_FORMS=!!(j&&j.endpoint); if(TAB==="health") renderHealth(); badges(); },()=>{ HEALTH_FORMS=false; });
+}
+TABS.splice(TABS.indexOf("help"),0,"health");
+const _renderTabH = renderTab;
+renderTab = function(t){ if(t!=="health") return _renderTabH(t); try{ renderHealth(); }catch(e){ console.error(e); $("#page-health").innerHTML='<div class="empty">Something on this page didn\'t draw: '+esc(e.message)+'</div>'; } };
+const _badgesH = badges;
+badges = function(){ _badgesH(); try{ badge("health", healthChecks().filter(c=>c[0]==="bad").length, true); }catch(e){} };
+/* the version, under Saving */
+setTimeout(()=>{ const n=$("#rail-save"); if(!n || typeof BUILD==="undefined" || $("#rail-ver")) return; const d=document.createElement("div"); d.className="railnote"; d.id="rail-ver"; d.innerHTML='<b>Version</b><span>'+esc(BUILD.fp)+' · '+esc(whenET(BUILD.at))+'</span>'; n.after(d); },0);
+
 /* ================= Start the next election year ================= */
 function openStartYear(){
   const ys=years(); const next=(vals("cycles").length? Math.max(...ys)+1 : today().getFullYear()+1);
@@ -4567,6 +4651,7 @@ async function buildCycle(type,y){
 
 /* ================= Help ================= */
 const HELP=[
+  ["Getting Started","System Health and bringing things back",'<p><b>System Health</b> (under Records) checks everything Elections HQ depends on, worst first: saving, the forms flow, the email flow, emails waiting or failed, when the last nomination, ballot and nominee answer came in, Meeting Trackers, and how full the ballot file is. A red count on it in the menu means something needs fixing.</p><p>Nothing is deleted for good. Anything removed (an election, a nominee, a task, an email draft, a voter) is set aside and listed under <b>Recently Removed</b>, where <b>Bring Back</b> restores it.</p><p>If someone else saved a record after you opened it, your save stops and says who changed it and when: close it, open it again, and make your change. The version (build time and fingerprint) shows under Saving in the menu. If a GitHub job fails, you get an email.</p>'],
   ["Getting Started","Workgroup elections",'<p>When a Development Workgroup or Community of Practice sends in its nominees outside the yearly cycle (for example Perry\'s request for the eNote Master Control Agreement DWG), open <b>Workgroup Elections</b> and press <b>Request an Election</b>. Fill in the group, the voting dates and closing time (noon Eastern unless they ask otherwise) and each nominee with their position, then say how many to elect for each position.</p><p>Saving publishes the online ballot (resources.mismo.org/forms/elections/ballot/?e=&lt;election&gt;) and puts a <b>Call for Vote</b> (the day voting opens) and a <b>Reminder to Vote</b> (the day before it closes) in the Outbox for you to send. Add the group\'s MISMO Connect address there or on the request. The ballot closes itself at the closing time.</p><p>One vote per member company, as always: duplicates are held for you to settle under <b>Ballots</b>. Ballots emailed to info@mismo.org go in with <b>+ Ballot Sent by Email</b>. When voting closes, press <b>Mark Results Final</b>, then <b>Apply to the Roster</b> and <b>Results Email</b>.</p>'],
   ["Getting Started","How Elections HQ is laid out",'<p>Each election has its own page: <b>Business Domains</b>, <b>Areas of Focus</b>, the <b>Governance Committee</b> and the <b>Board of Directors</b>. The pages under Running the Elections work across all of them: Nominations, Ballots and Results, the <b>Outbox</b>, Timeline and Tasks, Communications and Onboarding. Records holds the Structure, the Leadership Roster, Voter Lists and the Public Forms.</p><p>An election year is the year terms begin: the 2027 election year runs nominations and voting in the fall of 2026, and uses 2026 attendance from Meeting Trackers.</p><p>Pages with an <b>(i)</b> beside the title show what MISMO\'s Bylaws say about that election.</p>'],
   ["Getting Started","The new structure",'<p>Communities of Practice become <b>Areas of Focus</b> (standing spaces to collaborate) and Development Workgroups become <b>Task Forces</b> (each builds one product and wraps up when the domain decides the work is done). Each sits in one of eight <b>Business Domains</b>, which own the work: they review and approve it and decide which Areas of Focus and Task Forces they need. The Council of Chairs is the Domain Chairs. Business Glossary and Business Process Model become MISMO tools, stewarded through the Governance Committee, and with Information Management and Architecture they are led by Governance Committee members.</p><p>Groups archived in Meeting Trackers or Higher Logic (Fee Modernization, for one) are marked inactive on the Structure page.</p>'],
