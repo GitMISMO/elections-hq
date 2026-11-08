@@ -10,6 +10,7 @@ for (const f of ['index.html', 'tests/app.html']) {
 }
 const SECRET = [/ghp_[A-Za-z0-9]{20,}/, /github_pat_[A-Za-z0-9_]{20,}/, /[?&]sig=[A-Za-z0-9%_-]{20,}/, /logic\.azure\.com[^"'\s]*sig=/, /powerplatform\.com[^"'\s]*sig=/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/, /AKIA[0-9A-Z]{16}/];
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.name === '.git' || e.name === 'node_modules' ? [] : e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
-for (const f of walk('.')) { if (!/\.(html|js|mjs|json|md|yml|txt)$/.test(f)) continue; const t = fs.readFileSync(f, 'utf8'); for (const r of SECRET) if (r.test(t)) fail(f + ' looks like it holds a secret (' + r + ')'); }
+// slates/forms.json holds the public forms' flow address on purpose: the public forms must be able to reach it
+for (const f of walk('.')) { if (!/\.(html|js|mjs|json|md|yml|txt)$/.test(f) || f.replace(/\\/g, '/').endsWith('slates/forms.json')) continue; const t = fs.readFileSync(f, 'utf8'); for (const r of SECRET) if (r.test(t)) fail(f + ' looks like it holds a secret (' + r + ')'); }
 if (fs.existsSync('slates')) for (const f of fs.readdirSync('slates').filter(x => x.endsWith('.json'))) { try { JSON.parse(fs.readFileSync('slates/' + f, 'utf8')); } catch (e) { fail('slates/' + f + ' is not valid JSON'); } }
 console.log(bad ? bad + ' problem(s)' : 'All checks passed'); process.exit(bad ? 1 : 0);
