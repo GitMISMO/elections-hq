@@ -2156,10 +2156,11 @@ function voteStatus(c){
   const out={}; const vs=votesOf(c); const roll=voterRoll(c);
   const rollEmail=new Set(roll.map(v=>String(v.email||"").toLowerCase()).filter(Boolean));
   const rollCode={}; roll.forEach(v=>{ if(v.code) rollCode[v.code]=v; });
-  const groups={};
+  const groups={}; const usedCode={};
   vs.forEach(v=>{
     const f=S.voteflags[v.id];
-    const company = norm((v.voter||{}).company) || ("person:"+String((v.voter||{}).email||"").toLowerCase());
+    const em=String((v.voter||{}).email||"").toLowerCase(); const listed=(v.code && rollCode[v.code]) || roll.find(x=>em && String(x.email||"").toLowerCase()===em);
+    const company = norm((listed&&listed.company) || (v.voter||{}).company) || ("person:"+em);
     const key=(v.group||"")+"|"+company;
     (groups[key]=groups[key]||[]).push(v.id);
     let st={k:"counted", why:""};
@@ -2167,8 +2168,10 @@ function voteStatus(c){
     if(v.hp) st={k:"excluded", why:"Caught by the spam check"};
     else if(v.via==="Elections HQ preview") st={k:"excluded", why:"A staff preview, not a real ballot"};
     else if(win) st={k:"excluded", why:win};
+    else if(v.code && rollCode[v.code] && usedCode[v.code]) st={k:"excluded", why:"This personal link was already used for an earlier ballot"};
     else if(roll.length && !(v.code && rollCode[v.code]) && !rollEmail.has(String((v.voter||{}).email||"").toLowerCase())) st={k:"hold", why:"Not on the voter list"};
     out[v.id]=Object.assign(st,{key, verified: !!(v.code && rollCode[v.code])});
+    if(v.code && rollCode[v.code] && st.k!=="excluded") usedCode[v.code]=true;
     if(f && f.status) out[v.id]={k:f.status, why:f.reason||"", key, verified: out[v.id].verified, manual:true};
   });
   Object.values(groups).forEach(ids=>{
@@ -2430,7 +2433,7 @@ async function publishSlate(c){
 
 /* ================= results ================= */
 function wireResults(el,c){
-  const f=$("#rs-final",el); if(f) f.onclick=async()=>{ if(f.dataset.sure){ const t=tally(c); const res={}; seatsOf(c).forEach(s=>{ res[s.id]={winners:winnersOf(c,s,t).ids}; }); await patch("cycles",c.id,{final:true, results:res, finalAt:new Date().toISOString()}); toast("Results marked final"); } else { f.dataset.sure="1"; f.textContent="Press Again: Lock the Winners"; setTimeout(()=>{ delete f.dataset.sure; f.textContent="Mark Results Final"; },3500); } };
+  const f=$("#rs-final",el); if(f) f.onclick=async()=>{ const why=finalProblems(c); if(why.length){ toast("Not yet: "+why.join(" "),9000); return; } if(f.dataset.sure){ await markFinal(c); } else { f.dataset.sure="1"; f.textContent="Press Again: Lock the Winners"; setTimeout(()=>{ delete f.dataset.sure; f.textContent="Mark Results Final"; },3500); } };
   const a=$("#rs-apply",el); if(a) a.onclick=()=>applyResults(c);
   const cs=$("#rs-csv",el); if(cs) cs.onclick=()=>downloadCount(c);
   const au=$("#rs-audit",el); if(au) au.onclick=()=>{ const x=c.audit||{}; openPane({eye:"Governance Committee", title:"Audit of the Count", data:{by:x.by||"Michael Briggs", sent:x.sent||"", back:x.back||"", notes:x.notes||""}, fields:[{k:"by",label:"Audited By"},{k:"sent",label:"Sent",type:"date"},{k:"back",label:"Returned",type:"date"},{k:"notes",label:"Notes",type:"textarea",rows:3}], save:async v=>patch("cycles",c.id,{audit:v})}); };
@@ -2441,7 +2444,9 @@ function openWinner(c,s){
   openPane({eye:"Results · "+seatLabel(s), title:"Set the Winner", data:{}, noFocus:true,
     fields:[{k:"w",label:"Winner"+((+s.count||1)>1?"s":""),type:"checks",opts:ns.map(n=>[n.id, fullName(n)+" ("+((t[s.id]||{})[n.id]||0)+" votes)"]),get:()=>Object.fromEntries(w.ids.map(i=>[i,true]))},
       {k:"why",label:"Why (for the record)",wide:true,hint:"For example: tie settled by the CoP, or a nominee withdrew after the vote"}],
-    save:async v=>{ const res=Object.assign({},c.results||{}); res[s.id]={winners:Object.keys(v.w||{}), why:v.why}; await patch("cycles",c.id,{results:res}); }});
+    save:async v=>{ const picks=Object.keys(v.w||{}); if(picks.length>(+s.count||1)) throw new Error("Pick no more than "+(+s.count||1)+".");
+      const res=Object.assign({},c.results||{}); res[s.id]={winners:picks, why:v.why, by:whoAmI(), at:new Date().toISOString()}; await patch("cycles",c.id,{results:res});
+      for(const n of ns) for(const k of ["won","thanks"]){ const oid=c.id+"__"+k+"__"+n.id; const o=S.outbox[oid]; if(o && o.status==="draft" && !S.outsent[oid]) await remove("outbox",oid); } }});
 }
 function downloadCount(c){
   const t=tally(c); const rows=[["Election","Group","Position","Nominee","Company","Votes","Elected"]];
@@ -3255,9 +3260,10 @@ function voterActions(el,k,vs){
   $("#vt-import",el).onclick=()=>openPane({eye:"Voter Lists", title:"Paste a List", data:{}, fields:[{k:"mode",label:"What to Do",type:"select",opts:[["add","Add to the list"],["replace","Replace the list"]]},{k:"rows",label:"Rows copied from Excel: Name, Email, Company, Role",type:"textarea",rows:12,ph:"Jane Smith\tjsmith@example.com\tExample Bank\tMVR"}],
     save:async v=>{ const rows=String(v.rows||"").split(/\r?\n/).map(r=>r.split(/\t|,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(x=>x.replace(/^"|"$/g,"").trim())).filter(r=>r.some(Boolean) && !/^name$/i.test(r[0]));
       if(!rows.length) throw new Error("Paste at least one row.");
+      const oldCode={}; vs.forEach(x=>{ const em=String(x.email||"").toLowerCase(); if(em && x.code) oldCode[em]=x.code; });
       if(v.mode==="replace") for(const x of vs) await remove("voters",x.id);
       const have=new Set(v.mode==="replace"?[]:vs.map(x=>String(x.email).toLowerCase()));
-      let n=0; for(const r of rows){ const em=String(r[1]||"").toLowerCase(); if(em && have.has(em)) continue; have.add(em); await put("voters",uid("vr"),{list:k, name:r[0]||"", email:r[1]||"", company:r[2]||"", role:(r[3]||"").toUpperCase().includes("MVA")?"MVA":(r[3]||"").toUpperCase().includes("MVR")?"MVR":(r[3]||""), code:Math.random().toString(36).slice(2,8).toUpperCase()}); n++; }
+      let n=0; for(const r of rows){ const em=String(r[1]||"").toLowerCase(); if(em && have.has(em)) continue; have.add(em); await put("voters",uid("vr"),{list:k, name:r[0]||"", email:r[1]||"", company:r[2]||"", role:(r[3]||"").toUpperCase().includes("MVA")?"MVA":(r[3]||"").toUpperCase().includes("MVR")?"MVR":(r[3]||""), code:oldCode[em]||newCode()}); n++; }
       toast(plural(n,"person","people")+" added"); }});
   const fill=$("#vt-fill",el); if(fill) fill.onclick=async()=>{ const chairs=vals("leaders").filter(l=>l.gtype==="cop" && l.status!=="former" && /chair/i.test(l.position) && !/vice/i.test(l.position)); const have=new Set(vs.map(x=>norm(x.name)));
     let n=0; for(const l of chairs){ if(have.has(norm(l.name))) continue; have.add(norm(l.name)); await put("voters",uid("vr"),{list:"coc", name:l.name, email:l.email||"", company:l.company||"", role:l.group+" "+l.position, code:Math.random().toString(36).slice(2,8).toUpperCase()}); n++; } toast(plural(n,"Chair")+" added"); };
@@ -3485,7 +3491,7 @@ const RULE_KEY = r=>r[1]+"."+r[0];
 function ruleMode(r){ const a=((S.settings.automation||{}).rules||{})[RULE_KEY(r)]; const m=a||r[4]; return ["ask","auto","off"].includes(m)?m:"ask"; }
 const SENDING = o=>o.status==="send"||o.status==="approved";
 const OSTAT={draft:["Ready for You","review"], send:["Sending Now","in"], approved:["Sending Now","in"], scheduled:["Sends Automatically","in"], sent:["Sent","ok"], failed:["Didn't Send","changes"], skipped:["Skipped","wait"], address:["Needs an Address","changes"]};
-function outStatus(o){ const s=S.outsent[o.id]; if(s && s.status) return s.status==="sent"?"sent":"failed"; if((SENDING(o)||o.status==="scheduled") && !(o.to||[]).length && !(o.merge||[]).length) return "address"; if(o.status==="draft" && !(o.to||[]).length && !(o.merge||[]).length) return "address"; return SENDING(o)?"send":(o.status||"draft"); }
+function outStatus(o){ const s=S.outsent[o.id]; if(s && s.status) return s.status==="sent"?"sent":s.status==="sending"?"send":"failed"; if((SENDING(o)||o.status==="scheduled") && !(o.to||[]).length && !(o.merge||[]).length) return "address"; if(o.status==="draft" && !(o.to||[]).length && !(o.merge||[]).length) return "address"; return SENDING(o)?"send":(o.status||"draft"); }
 function emailOf(name){ const d=((S.settings.automation||{}).people)||{}; return d[name]||""; }
 function tplFor(type,key){ const t=(COMMS[type]||COMMS.aof||[]).find(x=>x[0]===key) || (COMMS.aof||[]).find(x=>x[0]===key); if(!t) return null; const o=S.comms[type+"__"+key]||{}; return {subject:o.subject||t[4], body:o.body||t[5]}; }
 function connectTo(gname){ const g=groupByName(gname); return g&&g.connectEmail? [{name:gname+" on MISMO Connect", email:g.connectEmail}] : []; }
@@ -4295,6 +4301,10 @@ const _applyResultsWG = applyResults;
 applyResults = async function(c){
   if(!c || c.type!=="wg") return _applyResultsWG(c);
   const res=c.results||{}; let n=0; const start=cdate(c,"ballotClose")||T(); const gt=c.gtype||"dwg";
+  const base=p=>String(p||"").replace(/^Co-/,"").replace(/-/g," ").toLowerCase(); const elected=new Set(seatsOf(c).map(s=>base(s.position)));
+  const winners=new Set(seatsOf(c).flatMap(s=>((res[s.id]||{}).winners||[]).map(i=>norm(fullName(S.nominations[i]||{})))));
+  for(const l of vals("leaders").filter(l=>l.status!=="former" && l.group===c.group && elected.has(base(l.position)) && !winners.has(norm(l.name))))
+    await patch("leaders",l.id,{status:"former", termEnd:add(start,-1), leftCycle:c.id});
   for(const s of seatsOf(c)){ for(const nid of ((res[s.id]||{}).winners||[])){ const x=S.nominations[nid]; if(!x) continue; const nm=fullName(x);
     const ex=vals("leaders").find(l=>l.status!=="former" && l.group===c.group && norm(l.name)===norm(nm));
     await put("leaders",ex?ex.id:uid("l"),Object.assign({},ex||{},{group:c.group, gtype:gt, position:s.position, name:nm, company:x.company||"", email:x.email||"", termStart:start, termEnd:ex?ex.termEnd||"":"", status:"active", fromCycle:c.id})); n++; } }
@@ -4318,12 +4328,14 @@ function wgDrafts(c){
 }
 async function wgSyncDrafts(c){
   for(const o of wgDrafts(c)){ const cur=S.outbox[o.id]; if(cur && !["draft","scheduled"].includes(cur.status)) continue; if(S.outsent[o.id]) continue;
+    if(cur && cur.edited){ if(cur.sendAfter!==o.sendAfter) await patch("outbox",o.id,{sendAfter:o.sendAfter}); continue; }
     await putOut(o.id,Object.assign({},cur||{},o,{cycle:c.id, status:(cur&&cur.status)||"draft", createdAt:(cur&&cur.createdAt)||new Date().toISOString(), auto:false, to:(cur&&(cur.to||[]).length&&!o.to.length)?cur.to:o.to})); }
 }
 async function wgShareResults(c){
   const t=tally(c); const lines=seatsOf(c).sort((a,b)=>POSITIONS.indexOf(a.position)-POSITIONS.indexOf(b.position)).map(s=>{ const w=winnersOf(c,s,t); return s.position+": "+(w.ids.map(i=>{ const n=S.nominations[i]||{}; return fullName(n)+(n.company?", "+n.company:""); }).join("; ")||"no one elected"); }).join("\n");
   const to=[]; if(c.connectEmail) to.push({name:c.group+" on MISMO Connect", email:c.connectEmail});
-  const id=c.id+"__results";
+  const id=c.id+"__results"; const cur=S.outbox[id];
+  if(cur && (cur.edited || cur.status!=="draft" || S.outsent[id])){ toast("The results email is already in the Outbox"); return; }
   await putOut(id,{cycle:c.id, rule:"wg.results", ruleLabel:"Results", status:"draft", createdAt:new Date().toISOString(), sendAfter:T(), auto:false, to,
     subject:"The "+c.group+"'s new leaders", body:"Hello "+c.group+" members,\n\nThank you for voting. Your new leaders are:\n\n"+lines+"\n\nPlease join us in congratulating them.\n\nThank you,\nMISMO"});
   toast("Results email is in the Outbox, ready for you");
@@ -4426,7 +4438,7 @@ function renderWG(){
     card.querySelector("[data-wemail]").onclick=()=>openBallotForm(c,{byHand:true});
     card.querySelector("[data-wbal]").onclick=()=>openWGBallots(c);
     $$("[data-win]",card).forEach(b=>b.onclick=()=>openWinner(c,S.seats[b.dataset.win]));
-    const f=card.querySelector("[data-wfinal]"); if(f) f.onclick=async()=>{ if(f.dataset.sure){ const t=tally(c); const res=Object.assign({},c.results||{}); seatsOf(c).forEach(s=>{ if(!res[s.id]) res[s.id]={winners:winnersOf(c,s,t).ids}; }); await patch("cycles",c.id,{final:true, results:res, finalAt:new Date().toISOString()}); toast("Results marked final"); } else { f.dataset.sure="1"; f.textContent="Press Again: Lock the Winners"; setTimeout(()=>{ if(f){ delete f.dataset.sure; f.textContent="Mark Results Final"; } },3500); } };
+    const f=card.querySelector("[data-wfinal]"); if(f) f.onclick=async()=>{ const why=finalProblems(c); if(why.length){ toast("Not yet: "+why.join(" "),9000); return; } if(f.dataset.sure){ await markFinal(c); } else { f.dataset.sure="1"; f.textContent="Press Again: Lock the Winners"; setTimeout(()=>{ if(f){ delete f.dataset.sure; f.textContent="Mark Results Final"; } },3500); } };
     const a=card.querySelector("[data-wapply]"); if(a) a.onclick=()=>applyResults(c);
     const sh=card.querySelector("[data-wshare]"); if(sh) sh.onclick=()=>wgShareResults(c);
   });
@@ -4436,6 +4448,84 @@ const _renderTabWG = renderTab;
 renderTab = function(t){ if(t!=="wg") return _renderTabWG(t); try{ renderWG(); }catch(e){ console.error(e); $("#page-wg").innerHTML='<div class="empty">Something on this page didn\'t draw: '+esc(e.message)+'</div>'; } };
 const _badgesWG = badges;
 badges = function(){ _badgesWG(); badge("wg", wgList().filter(c=>wgStage(c)[0]==="Voting Closed").length, true); };
+
+/* ======================= ENGINEERING REVIEW, BEFORE NOVEMBER 30 (November 8, 2026) =======================
+   - Every save records who made it (updatedBy); counting decisions record who (by).
+   - Count This One for a company sets that company's other hand-counted ballots aside.
+   - Mark Results Final checks first: ballots on hold, voting still open, ties, positions with no votes.
+     It records who finalized and a fingerprint of the ballots counted.
+   - Pressing Send on a Reminder to Vote refreshes who still hasn't voted.
+   - A new Business Domain year uses the MVR and MVA list.
+   - Personal ballot codes are 10 random characters. */
+function whoAmI(){ try{ const rs=window.ResourcesSession, cu=rs&&rs.current&&rs.current(); return (cu&&(cu.name||cu.email))||""; }catch(e){ return ""; } }
+function newCode(){ const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; const b=new Uint8Array(10); crypto.getRandomValues(b); return [...b].map(x=>A[x%A.length]).join(""); }
+
+const _putWho = put;
+put = async function(col,id,data){
+  const me=whoAmI(); const d=Object.assign({},data); if(me) d.updatedBy=me;
+  if(col==="voteflags" && me) d.by=me;
+  const r=await _putWho(col,id,d);
+  if(col==="voteflags" && d.status==="counted"){ const v=S.votes[id]; const c=v&&S.cycles[v.cycle];
+    if(c){ const st=voteStatus(c); const key=(st[id]||{}).key;
+      for(const x of votesOf(c)) if(x.id!==id && key && (st[x.id]||{}).key===key && (S.voteflags[x.id]||{}).status==="counted")
+        await _putWho("voteflags",x.id,{status:"excluded", reason:"Another ballot from this company was chosen", by:me, updatedBy:me, at:new Date().toISOString()}); } }
+  return r;
+};
+
+/* what stands in the way of locking the results */
+function finalProblems(c){
+  const out=[]; const st=voteStatus(c); const vs=votesOf(c);
+  const held=vs.filter(v=>(st[v.id]||{}).k==="hold").length; if(held) out.push("Settle the "+plural(held,"ballot")+" on hold first.");
+  const w=ballotWindow(c); if(w.closes && new Date().toISOString()<w.closes) out.push("Voting is still open.");
+  const t=tally(c); const tied=[], empty=[];
+  seatsOf(c).forEach(s=>{ const r=winnersOf(c,s,t); if(r.manual) return; const counts=t[s.id]||{}; const total=Object.values(counts).reduce((a,b)=>a+b,0);
+    if(r.tie) tied.push(seatLabel(s)); else if(!total && Object.keys(counts).length>(+s.count||1)) empty.push(seatLabel(s)); });
+  if(tied.length) out.push("Set the winner by hand for the tie"+(tied.length>1?"s":"")+": "+tied.join(", ")+".");
+  if(empty.length) out.push("No votes for "+empty.join(", ")+"; set the winner by hand if that's right.");
+  return out;
+}
+async function ballotFingerprint(c){ const st=voteStatus(c);
+  const rows=votesOf(c).map(v=>[v.id,(st[v.id]||{}).k||"",JSON.stringify(v.choices||{})].join("|")).sort().join("\n");
+  const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(rows)); return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join(""); }
+async function markFinal(c){
+  const t=tally(c); const res=Object.assign({},c.results||{});
+  seatsOf(c).forEach(s=>{ if(!(res[s.id]&&(res[s.id].winners||[]).length)) res[s.id]=Object.assign({},res[s.id]||{},{winners:winnersOf(c,s,t).ids}); });
+  const st=voteStatus(c); const vs=votesOf(c);
+  await patch("cycles",c.id,{final:true, results:res, finalAt:new Date().toISOString(), finalBy:whoAmI(), fingerprint:await ballotFingerprint(c),
+    finalCounts:{received:vs.length, counted:vs.filter(v=>(st[v.id]||{}).k==="counted").length, setAside:vs.filter(v=>(st[v.id]||{}).k==="excluded").length}});
+  toast("Results marked final");
+}
+
+/* Reminder to Vote: who still hasn't voted, worked out when you press Send */
+const _sendOutRefresh = sendOut;
+sendOut = async function(id,quiet){
+  const o=S.outbox[id];
+  if(o && /\.voteReminder$/.test(o.rule||"") && (o.merge||[]).length){
+    const c=S.cycles[o.cycle]; const r=RULES.find(x=>RULE_KEY(x)===o.rule);
+    if(c && r){ const fresh=(draftsFor(c,r).find(x=>x.id===id)||{}).merge||[];
+      if(!fresh.length){ toast("Everyone on this list has voted, so there's no one to remind"); return; }
+      if(fresh.length!==o.merge.length){ await patch("outbox",id,{merge:fresh}); toast("Reminder list refreshed: "+plural(fresh.length,"person","people")+" still to vote"); } } }
+  return _sendOutRefresh(id,quiet);
+};
+
+/* a new Business Domain year uses the MVR and MVA list for personal ballot links */
+const _buildCycleMVR = buildCycle;
+buildCycle = async function(type,y){ const r=await _buildCycleMVR(type,y); if(type==="domain"){ const id=y+"-domain"; if(S.cycles[id] && !S.cycles[id].voterList) await patch("cycles",id,{voterList:"mvr"}); } return r; };
+
+/* a failed or cut-off email: send it again to the people who didn't get it (as a new Outbox item, so nothing goes twice) */
+async function retryOut(id){
+  const o=S.outbox[id], s=S.outsent[id]; if(!o||!s) return; const done=+s.emails||0;
+  const merge=(o.merge||[]).filter(m=>m&&m.email).slice(done);
+  const nid=id.replace(/__retry\d+$/,"")+"__retry"+(1+vals("outbox").filter(x=>x.id.indexOf(id.replace(/__retry\d+$/,"")+"__retry")===0).length);
+  const copy=Object.assign({},o,{id:undefined, status:"send", createdAt:new Date().toISOString(), retryOf:id, note:"Sending again: "+(o.merge&&o.merge.length?plural(merge.length,"person","people")+" who didn't get it":"the whole message")});
+  if(o.merge&&o.merge.length) copy.merge=merge;
+  await put("outbox",nid,copy); toast("Sending again: "+(o.merge&&o.merge.length?plural(merge.length,"person","people"):"1 message"));
+}
+const _openOutRetry = openOut;
+openOut = function(id){ _openOutRetry(id); const s=S.outsent[id]; if(!s || !["failed","partial"].includes(s.status) || !CAN_SEND()) return;
+  const f=$("#pane-foot"); if(!f) return; const b=document.createElement("button"); b.className="btn pri"; b.type="button"; b.textContent=s.status==="partial"?"Send to the Rest":"Try Again";
+  b.onclick=async()=>{ if(b.dataset.sure){ await retryOut(id); closePane(true); } else { b.dataset.sure="1"; b.textContent="Press Again to Send"; setTimeout(()=>{ if(b){ delete b.dataset.sure; b.textContent=s.status==="partial"?"Send to the Rest":"Try Again"; } },3500); } };
+  f.insertBefore(b,f.firstChild); };
 
 /* ================= Start the next election year ================= */
 function openStartYear(){
