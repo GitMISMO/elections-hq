@@ -33,6 +33,17 @@ const r = await p.evaluate(async () => {
   ok('company comes from the voter list, and the MVR counts over the MVA', ds.d1v.k === 'counted' && ds.d2v.k === 'excluded');
   ok('a personal link counts once', ds.d3v.k === 'counted' && ds.d4v.k === 'excluded');
   ok('results can not be finalized with a tie', finalProblems(d).some(x => /tie/.test(x)));
+  /* the Aptify voting representatives report pasted as it comes */
+  const pasted = readVoterRows('ID\tShipToCompany\tLine1_ProductName\tOther Function\tPrimary Email\tFirst Name\tLast Name\n1\tExample Bank\tMISMO Corporate Membership\tMISMO Voting Representative\tr@bank.example\tRay\tR\n1\tExample Bank\tMISMO Corporate Membership\tMISMO Voting Alternate\tm@bank.example\tMo\tM\n1\tExample Bank\tMISMO Corporate Membership\tCompany Administrator\ta@bank.example\tAl\tA');
+  ok('the Aptify report pastes as it comes, keeping only MVRs and MVAs', pasted.rows.length === 2 && pasted.skipped === 1 && pasted.rows[0].role === 'MVR' && pasted.rows[1].role === 'MVA' && pasted.rows[0].name === 'Ray R' && pasted.rows[0].company === 'Example Bank');
+  ok('the old Name, Email, Company, Role paste still works', readVoterRows('Jane Smith\tj@x.example\tX Bank\tMVR').rows[0].role === 'MVR');
+  /* the audit trail */
+  S.voteflags.d4v = { status: 'excluded', by: 'Jonna', at: '2026-11-03T15:00:00.000Z', reason: 'Another ballot from this link' };
+  const trail = auditRows(d).map(r => r.join('|')).join('\n');
+  ok('the audit trail records each ballot and who decided what', /Ballot received from the form\|d1v/.test(trail) && /Set aside by staff\|d4v\|Jonna/.test(trail));
+  /* past elections, read-only */
+  S.archive = { 'archive/2024-domain': { id: '2024-domain', cycle: '2024-domain', type: 'domain', year: 2024, final: true, finalBy: 'Jonna', dates: { results: '2023-12-07' }, results: [{ seat: 'Data · Chair', count: 1, elected: [{ name: 'Ann Lee', company: 'Bank A' }] }], counts: { votes: 3 }, file: 'arch-2024-domain', archivedAt: '2026-01-15T15:23:00Z' } };
+  renderPast(); ok('past elections list what was archived', /2024/.test(document.querySelector('#page-past').textContent) && /3/.test(document.querySelector('#page-past').textContent));
   return res;
 });
 let bad = 0; for (const [k, v] of Object.entries(r)) { console.log(v ? 'ok  ' : 'FAIL', k); if (!v) bad++; }
