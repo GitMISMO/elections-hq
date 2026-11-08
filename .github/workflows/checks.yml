@@ -1,0 +1,25 @@
+# Automatic checks on every change to Elections HQ: the page's scripts parse, nothing secret is in
+# the repository, the public ballot files are valid, and made-up elections count correctly.
+name: Checks
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Scripts parse, no secrets, valid slates
+        run: node tests/check-scripts.mjs
+      - name: Made-up elections count correctly
+        run: |
+          npm install --no-save --silent playwright@1.48.2
+          npx playwright install --with-deps chromium > /dev/null
+          node tests/election.mjs
