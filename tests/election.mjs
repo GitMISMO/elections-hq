@@ -33,9 +33,15 @@ const r = await p.evaluate(async () => {
   ok('company comes from the voter list, and the MVR counts over the MVA', ds.d1v.k === 'counted' && ds.d2v.k === 'excluded');
   ok('a personal link counts once', ds.d3v.k === 'counted' && ds.d4v.k === 'excluded');
   ok('results can not be finalized with a tie', finalProblems(d).some(x => /tie/.test(x)));
+  /* the flood guard */
+  S.votes.v6 = V('v6', 'Zed', ['b'], '2026-11-10T16:00:00.000Z', { rateHeld: 'same-address' });
+  ok('a ballot the flood guard held waits for staff', voteStatus(c).v6.k === 'hold');
+  delete S.votes.v6;
   /* the Aptify voting representatives report pasted as it comes */
   const pasted = readVoterRows('ID\tShipToCompany\tLine1_ProductName\tOther Function\tPrimary Email\tFirst Name\tLast Name\n1\tExample Bank\tMISMO Corporate Membership\tMISMO Voting Representative\tr@bank.example\tRay\tR\n1\tExample Bank\tMISMO Corporate Membership\tMISMO Voting Alternate\tm@bank.example\tMo\tM\n1\tExample Bank\tMISMO Corporate Membership\tCompany Administrator\ta@bank.example\tAl\tA');
   ok('the Aptify report pastes as it comes, keeping only MVRs and MVAs', pasted.rows.length === 2 && pasted.skipped === 1 && pasted.rows[0].role === 'MVR' && pasted.rows[1].role === 'MVA' && pasted.rows[0].name === 'Ray R' && pasted.rows[0].company === 'Example Bank');
+  const rep = readVoterRows('Company ID\tCompany\tFirst Name\tLast Name\tPrimary Email\tOther Function\tFunction Ended\tMembership\tMembership Ends\n9229539\tAbsolute Home Mortgage Corp.\tErica\tAdams\te@ahm.example\tMISMO Voting Representative\t\tMISMO Corporate Membership\t2027-06-30\n9229539\tAbsolute Home Mortgage Corp.\tMatt\tV\tm@ahm.example\tMISMO Voting Alternate\t\tMISMO Corporate Membership\t2027-06-30');
+  ok('the ElectionsHQ_VotingReps report pastes as it comes', rep.rows.length === 2 && rep.rows[0].companyId === '9229539' && rep.rows[0].company === 'Absolute Home Mortgage Corp.' && rep.rows[1].role === 'MVA' && rep.rows[0].email === 'e@ahm.example');
   ok('the old Name, Email, Company, Role paste still works', readVoterRows('Jane Smith\tj@x.example\tX Bank\tMVR').rows[0].role === 'MVR');
   /* the audit trail */
   S.voteflags.d4v = { status: 'excluded', by: 'Jonna', at: '2026-11-03T15:00:00.000Z', reason: 'Another ballot from this link' };
