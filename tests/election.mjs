@@ -47,6 +47,18 @@ const r = await p.evaluate(async () => {
   S.voteflags.d4v = { status: 'excluded', by: 'Jonna', at: '2026-11-03T15:00:00.000Z', reason: 'Another ballot from this link' };
   const trail = auditRows(d).map(r => r.join('|')).join('\n');
   ok('the audit trail records each ballot and who decided what', /Ballot received from the form\|d1v/.test(trail) && /Set aside by staff\|d4v\|Jonna/.test(trail));
+  /* Board Seat Map drag and drop */
+  S.cycles['2099-board'] = { id: '2099-board', type: 'board', year: 2099, dates: {} };
+  S.leaders = { bm1: { id: 'bm1', gtype: 'board', name: 'Pat Board', company: 'Bank P', seat: 'SF Lender', status: 'active', termEnd: '2100-12-31' }, bm2: { id: 'bm2', gtype: 'board', name: 'Lee Old', company: 'Bank L', seat: 'GSE', status: 'active', termEnd: '2098-12-31' } };
+  S.slate = {};
+  const bc = S.cycles['2099-board'];
+  await boardDrop(bc, boardPicture(bc), { mem: 'bm1', from: 'sfl' }, 'leave');
+  const ex = Object.values(S.slate).find(x => x.leader === 'bm1');
+  ok('a member dragged to Leaving goes on the slate as leaving', ex && ex.kind === 'exit' && ex.approval === 'needs' && boardPicture(bc).leaving.some(l => l.id === 'bm1'));
+  await boardDrop(bc, boardPicture(bc), { mem: 'bm1', from: 'leave' }, 'sfl');
+  ok('dragged back, the leaving item is set aside', !Object.values(S.slate).some(x => x.leader === 'bm1' && x.kind === 'exit') && !boardPicture(bc).leaving.some(l => l.id === 'bm1'));
+  await boardDrop(bc, boardPicture(bc), { mem: 'bm1', from: 'sfl' }, 'svc');
+  ok('a member dragged to another category changes seat', boardCat(S.leaders.bm1.seat) === 'svc');
   /* past elections, read-only */
   S.archive = { 'archive/2024-domain': { id: '2024-domain', cycle: '2024-domain', type: 'domain', year: 2024, final: true, finalBy: 'Jonna', dates: { results: '2023-12-07' }, results: [{ seat: 'Data · Chair', count: 1, elected: [{ name: 'Ann Lee', company: 'Bank A' }] }], counts: { votes: 3 }, file: 'arch-2024-domain', archivedAt: '2026-01-15T15:23:00Z' } };
   renderPast(); ok('past elections list what was archived', /2024/.test(document.querySelector('#page-past').textContent) && /3/.test(document.querySelector('#page-past').textContent));
