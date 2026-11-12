@@ -2,6 +2,9 @@
 
 One line per change people would notice. Newest first.
 
+## November 12, 2026
+- Board Seat Map: drag members onto Leaving December 31 (adds a leaving slate item), back out to keep them (sets it aside, or opens an extension if their term ran out), or to another category to change their seat.
+
 ## November 8, 2026 (later)
 - Flood guard on the public forms: a third entry from one email address in a day, or 60+ entries in ten minutes, is kept but held for staff (no outside service needed).
 - Emailed ballot receipts switched on.

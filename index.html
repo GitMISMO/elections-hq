@@ -1330,6 +1330,10 @@ tr.join td{background:color-mix(in srgb,var(--good-soft) 70%,transparent)}
 @media (max-width:700px){.taskrow{grid-template-columns:20px 20px minmax(0,1fr);}.taskrow .td,.taskrow .tw2{grid-column:3}.trow{grid-template-columns:minmax(0,1fr) 54px}.trow .bar{grid-column:1/-1;grid-row:2}.mixrow{grid-template-columns:minmax(0,1fr) 70px}.mixrow .cells{grid-column:1/-1}}
 
 .efn{color:var(--ink-3);font-weight:400;font-size:12.5px}
+/* Board Seat Map drag and drop */
+.ptile[draggable="true"]{cursor:grab}
+.ptile.dragging{opacity:.45}
+.bdrop.over{outline:2px dashed var(--sky);outline-offset:-2px;background:var(--accent-soft)}
 
 /* ===== Elections HQ: the visual layer (boards, maps and cards instead of long lists) ===== */
 .band.tight{padding:14px 16px}
@@ -1736,7 +1740,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const BUILD={at:"2026-11-08T19:06:39Z",fp:"38077af3"};
+const BUILD={at:"2026-11-12T15:09:25Z",fp:"76f8d1c2"};
 
 /* ================= the public forms (shared by Elections HQ and the website copies) =================
    EF.nominate(el, {elections, submit, onDone})   elections: [{cycle, type, name, open, closes, groups:[{name, positions:[{seat, position}]}], seats:[{seat, position}], boardSeats}]
@@ -3077,19 +3081,20 @@ function renderBoard(){
     subtabs("board",[["members","Seat Map"],["slate",y+" Slate",needs.length||""],["prospects","Prospects"],["tasks","Tasks"]])+'<div id="bd-body"></div>';
   const body=$("#bd-body",el);
   if(sub==="members"){
-    const tile2=(l,cls,sub2,attr)=>'<button type="button" class="ptile '+cls+'" '+attr+'><span class="av">'+esc(initials(l.name||l.person))+'</span><span class="pt"><b>'+esc(l.name||l.person)+'</b><small>'+esc(sub2)+'</small></span></button>';
+    const tile2=(l,cls,sub2,attr)=>'<button type="button" draggable="true" class="ptile '+cls+'" '+attr+'><span class="av">'+esc(initials(l.name||l.person))+'</span><span class="pt"><b>'+esc(l.name||l.person)+'</b><small>'+esc(sub2)+'</small></span></button>';
     body.innerHTML='<div class="split2" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)"><div class="card"><div class="ch"><h2>The Board on January 1, '+y+'</h2><span class="legend2"><span><i class="sw-ok"></i>Joining</span><span><i style="background:var(--c1)"></i>Extended</span></span><div class="r"><button class="btn sm" type="button" id="bd-targets">Edit Targets</button><button class="btn sm" type="button" id="bd-addmem">+ Member</button></div></div>'+
       targets.map(t=>{ const ppl=B.stay.filter(l=>boardCat(l.seat)===t.k).sort((a,b)=>byName(a.name,b.name)); const jn=B.joinNew.filter(x=>boardCat(x.seat)===t.k); const have=ppl.length+jn.length; const tg=+t.target||0; if(!have && !tg) return "";
         const pct=tg?Math.min(100,have/tg*100):100;
-        return '<div class="catblock"><h3>'+esc(t.short||t.name)+(t.k==="exo"?'':'<span class="meter"><i style="width:'+pct+'%;background:'+(have>tg?"var(--c4)":have<tg?"var(--c1)":"var(--good)")+'"></i></span>')+'<span class="mv">'+(t.k==="exo"?have+" ex officio":have+" of "+tg+(have<tg?" · "+(tg-have)+" open":have>tg?" · "+(have-tg)+" over":""))+'</span></h3><div class="ptiles">'+
+        return '<div class="catblock bdrop" data-bcat="'+esc(t.k)+'"><h3>'+esc(t.short||t.name)+(t.k==="exo"?'':'<span class="meter"><i style="width:'+pct+'%;background:'+(have>tg?"var(--c4)":have<tg?"var(--c1)":"var(--good)")+'"></i></span>')+'<span class="mv">'+(t.k==="exo"?have+" ex officio":have+" of "+tg+(have<tg?" · "+(tg-have)+" open":have>tg?" · "+(have-tg)+" over":""))+'</span></h3><div class="ptiles">'+
           ppl.map(l=>{ const joining=l.termStart && l.termStart>=B.yStart; return tile2(l, joining?"join":B.extIds.has(l.id)?"ext":"", (l.company||"")+(l.termEnd?" · to "+fY(l.termEnd):""), 'data-mem="'+esc(l.id)+'"'); }).join("")+
           jn.map(x=>tile2(x,"join",(x.company||"")+" · "+APPROVAL[x.approval||"needs"][0],'data-sl="'+esc(x.id)+'"')).join("")+'</div></div>'; }).join("")+'</div>'+
-      '<div class="card"><div class="ch"><h2>Leaving December 31</h2><span class="cnt">'+B.leaving.length+'</span></div><div class="catblock"><div class="ptiles" style="grid-template-columns:minmax(0,1fr)">'+
+      '<div class="card bdrop" data-bcat="leave"><div class="ch"><h2>Leaving December 31</h2><span class="cnt">'+B.leaving.length+'</span></div><div class="note" style="padding:8px 16px 0">Drag a member here to add them to the slate as leaving; drag them back to keep them.</div><div class="catblock"><div class="ptiles" style="grid-template-columns:minmax(0,1fr)">'+
         (B.leaving.sort((a,b)=>byName(a.name,b.name)).map(l=>tile2(l,"leave",(l.company||"")+" · "+(l.seat||""),'data-mem="'+esc(l.id)+'"')).join("")||'<div class="note">Nobody leaving.</div>')+'</div></div></div></div>';
     $("#bd-addmem",body).onclick=()=>openBoardMember(null);
     $("#bd-targets",body).onclick=()=>openTargets();
     $$("[data-mem]",body).forEach(r=>r.onclick=()=>openBoardMember(r.dataset.mem));
     $$("[data-sl]",body).forEach(r=>r.onclick=()=>openSlate(r.dataset.sl,c));
+    wireBoardDrag(body,c,B);
   } else if(sub==="slate"){
     const card=x=>'<div class="kcard" data-kid="'+esc(x.id)+'" data-slo="'+esc(x.id)+'" draggable="true"><span class="chip k" style="align-self:flex-start">'+esc(SLATE_KIND[x.kind]||x.kind)+'</span><b>'+esc(x.person||"")+'</b><small>'+esc([x.company,x.detail||x.seat].filter(Boolean).join(" · "))+'</small>'+((x.termStart||x.termEnd)?'<small>'+esc((fY(x.termStart)||"")+(x.termEnd?" to "+fY(x.termEnd):""))+'</small>':'')+'</div>';
     const by=k=>B.slate.filter(x=>(x.approval||"needs")===k).sort((a,b)=>byName(a.kind,b.kind)||byName(a.person,b.person)).map(card);
@@ -4776,6 +4781,54 @@ voteStatus = function(c){ const out=_voteStatusRate(c);
 const _subFlagsRate = subFlags;
 subFlags = function(x){ const r=_subFlagsRate(x); if(x && x.rateHeld) r.flags.push([x.rateHeld==="burst"?"Came In a Flood":"Many From One Address","sp"]); return r; };
 
+/* ---------- Board Seat Map: drag members between seat categories and to or from Leaving (Nov 12, 2026) ----------
+   - A member dragged to Leaving gets a "Leaving" slate item (Needs Approval); a pending extension for them is set aside.
+   - Dragged back out of Leaving: the "Leaving" slate item is set aside; if they were leaving because their term
+     ends, an extension slate item opens, filled in, for the new term end.
+   - Dragged to another category: their seat changes to that category (joining members too).
+   Nothing is applied to the Board list until the slate item is approved. */
+const BOARD_SEAT={mba:"MBA Seat", sfl:"SF Lender", cml:"Commercial / MF", svc:"SF Service Provider / Vendor", mi:"SF MI", gse:"GSE", atl:"At Large", exo:"Ex Officio"};
+function wireBoardDrag(body,c,B){
+  let drag=null;
+  $$(".ptile[draggable]",body).forEach(t=>{
+    t.addEventListener("dragstart",e=>{ drag={mem:t.dataset.mem||"", sl:t.dataset.sl||"", from:(t.closest("[data-bcat]")||{}).dataset.bcat||""}; t.classList.add("dragging"); try{ e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain",drag.mem||drag.sl); }catch(_){} });
+    t.addEventListener("dragend",()=>{ t.classList.remove("dragging"); $$(".bdrop.over",body).forEach(x=>x.classList.remove("over")); drag=null; });
+  });
+  /* the innermost drop area wins: a category inside the Board card, or the Leaving card */
+  $$(".bdrop",body).forEach(z=>{
+    z.addEventListener("dragover",e=>{ if(!drag) return; e.preventDefault(); e.stopPropagation(); $$(".bdrop.over",body).forEach(x=>{ if(x!==z) x.classList.remove("over"); }); z.classList.add("over"); });
+    z.addEventListener("dragleave",e=>{ if(!z.contains(e.relatedTarget)) z.classList.remove("over"); });
+    z.addEventListener("drop",async e=>{ e.preventDefault(); e.stopPropagation(); z.classList.remove("over"); const d=drag; drag=null; if(!d) return;
+      const to=z.dataset.bcat; if(to===d.from) return;
+      try{ await boardDrop(c,B,d,to); }catch(err){ toast("Couldn't move it: "+(err.message||err),5000); } });
+  });
+}
+async function boardDrop(c,B,d,to){
+  const y=+c.year;
+  if(d.sl){ const x=S.slate[d.sl]; if(!x) return;
+    if(to==="leave"){ toast("Joining members aren't on the Board yet. To drop one, mark the slate item Declined on the Slate tab.",6000); return; }
+    await patch("slate",d.sl,{seat:BOARD_SEAT[to]||x.seat}); toast((x.person||"Joining member")+" moved to "+catName(to)); return; }
+  const l=S.leaders[d.mem]; if(!l) return;
+  const mine=B.slate.filter(x=>x.leader===l.id && !x.applied);
+  if(to==="leave"){
+    if(mine.some(x=>x.kind==="exit")){ toast(l.name+" is already on the slate as leaving"); return; }
+    for(const x of mine.filter(x=>x.kind==="extend")) await remove("slate",x.id);
+    await put("slate",uid("sl"),{cycle:c.id, kind:"exit", approval:"needs", leader:l.id, person:l.name, company:l.company||"", seat:l.seat||"", termEnd:(y-1)+"-12-31", createdAt:new Date().toISOString()});
+    toast(l.name+" added to the slate as leaving December 31 (needs approval)",5000); return; }
+  /* into a category */
+  if(d.from==="leave"){
+    const exits=mine.filter(x=>x.kind==="exit");
+    for(const x of exits) await remove("slate",x.id);
+    if(boardCat(l.seat)!==to) await patch("leaders",l.id,{seat:BOARD_SEAT[to]||l.seat});
+    const stillLeaving=l.termEnd && l.termEnd<y+"-01-01" && !B.extIds.has(l.id);
+    if(stillLeaving){ toast("Their term ends "+fL(l.termEnd)+": set the new term end to extend it",6000);
+      openSlate(null,c,{kind:"extend", leader:l.id, person:l.name, company:l.company||"", seat:BOARD_SEAT[to]||l.seat||"", termStart:y+"-01-01", termEnd:(y+2)+"-12-31"}); }
+    else toast(l.name+" stays on the Board"+(exits.length?"; the leaving slate item was set aside (bring it back from System Health)":""),5000);
+    return; }
+  await patch("leaders",l.id,{seat:BOARD_SEAT[to]||l.seat}); toast(l.name+" moved to "+catName(to));
+}
+function catName(k){ const t=(((S.settings.main||{}).boardTargets)||[]).find(x=>x.k===k); return t?(t.short||t.name):(BOARD_SEAT[k]||k); }
+
 /* ================= Start the next election year ================= */
 function openStartYear(){
   const ys=years(); const next=(vals("cycles").length? Math.max(...ys)+1 : today().getFullYear()+1);
@@ -4840,7 +4893,7 @@ const HELP=[
   ["Voting","One company, one vote",'<p>When a company sends more than one ballot for the same group, those ballots are held. The one-company email goes to them; when they answer, press <b>Count This One</b> on the ballot that stands. For the Governance Committee, if both the MVR and the MVA vote, the Alternate\'s ballot is dismissed.</p><p>Ballots emailed to elections@mismo.org go in with <b>+ Ballot Sent by Email</b> on Ballots and Results.</p>'],
   ["Results","Certifying the results with MBA Legal",'<p>MBA Legal, as a third party, confirms an election was fair. The Governance Committee is now appointed, so its certification emails are switched off; the same request can be drafted for any elected results from the <b>Certification</b> button on those results.</p><ol><li>When the Call for Vote goes out, a <b>Heads-Up to MBA Legal</b> is drafted with the dates.</li><li>On the audit date, the <b>Request to Certify</b> is drafted from the count: the process with its dates, the ballots received, any company that voted twice and which ballot counted, any tie and how it was settled, and every seat\'s elected and not elected nominees. The ballot breakdown and the count are attached.</li><li>Press <b>Certification</b> on the results to see it, draft it again after settling ballots, and record when it comes back.</li></ol><p>Who certifies (Michael Briggs is leaving) is set in Outbox, Addresses; leave it blank until it\'s decided, and the drafts wait in Needs Attention. These come from your address.</p>'],
   ["Results","Final results and the roster",'<ol><li>Settle every ballot on hold.</li><li>For the Governance Committee, send the Request to Certify and record it when it\'s back.</li><li>Press <b>Mark Results Final</b>. The elected and thank-you emails are drafted.</li><li>Press <b>Apply to the Roster</b>. New leaders are added, outgoing leaders move to Former, everyone new appears on Onboarding, Domain Chairs appear on the Council of Chairs, and the new leaders are written into Meeting Trackers.</li></ol>'],
-  ["Board","How the Board slate works",'<p>Board members aren\'t voted on by members. The Nominating Committee recommends the slate and MBA\'s President and CEO elects the Board. The Board page keeps the slate: who\'s leaving, who\'s joining, extensions, committee roles (including the Prioritization Committee) and officers. The names go to MBA at least 30 days before year end (by December 1); Elections HQ flags it if that date is later.</p>']
+  ["Board","How the Board slate works",'<p>Board members aren\'t voted on by members. The Nominating Committee recommends the slate and MBA\'s President and CEO elects the Board. The Board page keeps the slate: who\'s leaving, who\'s joining, extensions, committee roles (including the Prioritization Committee) and officers. The names go to MBA at least 30 days before year end (by December 1); Elections HQ flags it if that date is later.</p><p>On the <b>Seat Map</b>, drag a member onto <b>Leaving December 31</b> to put them on the slate as leaving (it needs approval like any slate item). Drag them back into a category to keep them: the leaving item is set aside, and if their term has run out an extension opens, filled in, for you to set the new term end. Drag a member or a joining member to another category to change their seat.</p>']
 ].concat(Object.keys(BYLAWS).map(k=>["The Bylaws", BYLAWS[k].t, '<ul>'+BYLAWS[k].pts.map(p=>'<li>'+esc(p)+'</li>').join("")+'</ul><p class="note">'+esc(BYLAWS[k].cite)+'. Bylaws of the Mortgage Industry Standards Maintenance Organization, Inc., as amended January 20, 2022. A plain-words summary; the Bylaws themselves govern.</p>']));
 function renderHelp(){
   const el=$("#page-help"); const cur=SUB.help||0;
