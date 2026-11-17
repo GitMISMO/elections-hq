@@ -2,6 +2,10 @@
 
 One line per change people would notice. Newest first.
 
+## November 17, 2026
+- Elections can close nominations and voting at a set Eastern time (Business Domains: 5 p.m. Friday). The forms close on time and the emails, ballot and request to MBA Legal say the time.
+- Architecture split in two: the workgroup is an Area of Focus under Data & Technology Enablement; the approval body stays in the Governance Process.
+
 ## November 12, 2026
 - Board Seat Map: drag members onto Leaving December 31 (adds a leaving slate item), back out to keep them (sets it aside, or opens an extension if their term ran out), or to another category to change their seat.
 

@@ -1740,7 +1740,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const BUILD={at:"2026-11-12T15:09:25Z",fp:"76f8d1c2"};
+const BUILD={at:"2026-11-17T22:53:34Z",fp:"709b1996"};
 
 /* ================= the public forms (shared by Elections HQ and the website copies) =================
    EF.nominate(el, {elections, submit, onDone})   elections: [{cycle, type, name, open, closes, groups:[{name, positions:[{seat, position}]}], seats:[{seat, position}], boardSeats}]
@@ -1764,7 +1764,7 @@ var EF = (function(){
     if(!open.length){ el.innerHTML='<div class="ef">'+hero+'<div class="closed"><b>Nominations are closed right now.</b><br>Questions? Write to elections@mismo.org.</div></div>'; return; }
     var pre=cfg.preset||open[0].cycle;
     el.innerHTML='<form class="ef" novalidate>'+hero+
-      '<fieldset><legend>Which election?</legend><div class="opts">'+open.map(function(x){ return '<label class="opt'+(x.cycle===pre?" on":"")+'"><input type="radio" name="cycle" value="'+e(x.cycle)+'"'+(x.cycle===pre?" checked":"")+'><span><b>'+e(LONG[x.type]||x.name)+'</b><small>'+e(WHAT[x.type]||"")+(x.closes?' · nominations close '+e(fmt(x.closes)):'')+'</small></span></label>'; }).join("")+'</div></fieldset>'+
+      '<fieldset><legend>Which election?</legend><div class="opts">'+open.map(function(x){ return '<label class="opt'+(x.cycle===pre?" on":"")+'"><input type="radio" name="cycle" value="'+e(x.cycle)+'"'+(x.cycle===pre?" checked":"")+'><span><b>'+e(LONG[x.type]||x.name)+'</b><small>'+e(WHAT[x.type]||"")+(x.closesLabel?' · nominations close '+e(x.closesLabel):x.closes?' · nominations close '+e(fmt(x.closes)):'')+'</small></span></label>'; }).join("")+'</div></fieldset>'+
       '<fieldset id="ef-seatbox"><legend>Seat</legend><div class="fgrid" id="ef-seat"></div></fieldset>'+
       '<fieldset><legend>Are you nominating yourself?</legend><div class="opts"><label class="opt on"><input type="radio" name="self" value="yes" checked><span><b>Yes, I\'m nominating myself</b></span></label><label class="opt"><input type="radio" name="self" value="no"><span><b>No, I\'m nominating someone else</b></span></label></div></fieldset>'+
       '<fieldset><legend id="ef-nlg">Your details</legend><div class="fgrid">'+fld("first","First Name","text",true,"given-name")+fld("last","Last Name","text",true,"family-name")+fld("email","Work Email","email",true,"email")+fld("company","Company","text",true,"organization")+fld("title","Job Title","text",true,"organization-title")+'</div></fieldset>'+
@@ -4828,6 +4828,30 @@ async function boardDrop(c,B,d,to){
   await patch("leaders",l.id,{seat:BOARD_SEAT[to]||l.seat}); toast(l.name+" moved to "+catName(to));
 }
 function catName(k){ const t=(((S.settings.main||{}).boardTargets)||[]).find(x=>x.k===k); return t?(t.short||t.name):(BOARD_SEAT[k]||k); }
+
+/* ---------- closing times (Nov 17, 2026): "through close of business Friday" ----------
+   An election can close nominations (nomCloseTime) and voting (closeTime, used everywhere ballots
+   are checked) at a set Eastern time instead of midnight. The forms, the emails and the request to
+   MBA Legal all say the time. */
+const timeWord = t=>{ if(!t) return ""; const [h,m]=String(t).split(":").map(Number); if(h===12&&!m) return "noon"; const ap=h>=12?"p.m.":"a.m."; const hh=((h+11)%12)+1; return hh+(m?":"+String(m).padStart(2,"0"):"")+" "+ap; };
+const closeLabel = (c,k,t)=>{ const d=cdate(c,k); return d? fLong(d)+(t?" at "+timeWord(t)+" Eastern":"") : ""; };
+const _mergeTextT = mergeText;
+mergeText = function(s,c,extra){ if(!c || !(c.closeTime||c.nomCloseTime)) return _mergeTextT(s,c,extra);
+  let t=String(s||""); const x=Object.assign({},extra||{});
+  if(c.nomCloseTime){ t=t.replace(/\{\{nomClose\}\} \(midnight Eastern\)/g,"{{nomClose}}"); if(x.nomClose==null) x.nomClose=closeLabel(c,"nomClose",c.nomCloseTime); }
+  if(c.closeTime && c.type!=="wg"){ t=t.replace(/at midnight Eastern on \{\{ballotClose\}\}/g,"on {{ballotClose}}"); if(x.ballotClose==null) x.ballotClose=closeLabel(c,"ballotClose",c.closeTime); }
+  return _mergeTextT(t,c,x); };
+const _slateOfT = slateOf;
+slateOf = function(c){ const sl=_slateOfT(c); if(!c || c.type==="wg" || !c.closeTime || !sl) return sl;
+  return Object.assign({},sl,{closesAt:ballotWindow(c).closes, closesLabel:closeLabel(c,"ballotClose",c.closeTime)}); };
+const _nominateConfigT = nominateConfig;
+nominateConfig = function(){ return _nominateConfigT().map(x=>{ const c=S.cycles[x.cycle]; if(!c || !c.nomCloseTime || !x.until) return x;
+  return Object.assign({},x,{untilAt:etMoment(x.until,c.nomCloseTime), closesLabel:fLong(x.until)+" at "+timeWord(c.nomCloseTime)+" Eastern"}); }); };
+const _certBodyT = certBody;
+certBody = function(c){ let s=_certBodyT(c);
+  if(c.nomCloseTime) s=s.replace("before the midnight Eastern deadline on "+fLong(cdate(c,"nomClose")),"before the deadline of "+timeWord(c.nomCloseTime)+" Eastern on "+fLong(cdate(c,"nomClose")));
+  if(c.closeTime) s=s.replace("Voting closed at midnight Eastern on","Voting closed at "+timeWord(c.closeTime)+" Eastern on");
+  return s; };
 
 /* ================= Start the next election year ================= */
 function openStartYear(){
