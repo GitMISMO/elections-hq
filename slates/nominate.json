@@ -196,7 +196,9 @@
         "Commercial / Multifamily Lender",
         "Mortgage Insurance",
         "Other"
-      ]
+      ],
+      "untilAt": "2026-12-11T22:00:00.000Z",
+      "closesLabel": "Friday, December 11 at 5 p.m. Eastern"
     },
     {
       "cycle": "2027-board",
@@ -219,5 +221,5 @@
       ]
     }
   ],
-  "at": "2026-11-17T22:43:43.798Z"
+  "at": "2026-11-17T22:57:44.443Z"
 }
