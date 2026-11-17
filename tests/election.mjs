@@ -47,6 +47,13 @@ const r = await p.evaluate(async () => {
   S.voteflags.d4v = { status: 'excluded', by: 'Jonna', at: '2026-11-03T15:00:00.000Z', reason: 'Another ballot from this link' };
   const trail = auditRows(d).map(r => r.join('|')).join('\n');
   ok('the audit trail records each ballot and who decided what', /Ballot received from the form\|d1v/.test(trail) && /Set aside by staff\|d4v\|Jonna/.test(trail));
+  /* closing at close of business */
+  S.cycles['2098-domain'] = { id: '2098-domain', type: 'domain', year: 2098, closeTime: '17:00', nomCloseTime: '17:00', dates: { nomOpen: '2026-12-07', nomClose: '2026-12-11', ballotOpen: '2026-12-14', ballotClose: '2026-12-18' } };
+  const cb = S.cycles['2098-domain'];
+  ok('voting closes at 5 p.m. Eastern', ballotWindow(cb).closes === '2026-12-18T22:00:00.000Z');
+  ok('a ballot at 5:30 p.m. Eastern Friday is late', /after voting closed/.test(ballotWindowCheck(cb, { receivedAt: '2026-12-18T22:30:00.000Z', submittedAt: '2026-12-18T22:30:00.000Z' })));
+  ok('the emails and forms say the time', mergeText('By {{nomClose}} (midnight Eastern); voting closes at midnight Eastern on {{ballotClose}}.', cb) === 'By Friday, December 11 at 5 p.m. Eastern; voting closes on Friday, December 18 at 5 p.m. Eastern.' && slateOf(cb).closesLabel === 'Friday, December 18 at 5 p.m. Eastern');
+  delete S.cycles['2098-domain'];
   /* Board Seat Map drag and drop */
   S.cycles['2099-board'] = { id: '2099-board', type: 'board', year: 2099, dates: {} };
   S.leaders = { bm1: { id: 'bm1', gtype: 'board', name: 'Pat Board', company: 'Bank P', seat: 'SF Lender', status: 'active', termEnd: '2100-12-31' }, bm2: { id: 'bm2', gtype: 'board', name: 'Lee Old', company: 'Bank L', seat: 'GSE', status: 'active', termEnd: '2098-12-31' } };
