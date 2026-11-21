@@ -1342,6 +1342,16 @@ tr.join td{background:color-mix(in srgb,var(--good-soft) 70%,transparent)}
 .recfiles{display:flex;flex-direction:column;gap:6px}
 .recfile{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--border);border-radius:6px;padding:8px 10px}
 .recfile span{display:flex;flex-direction:column;min-width:0}.recfile small{color:var(--ink-3);font-size:12px}
+/* side-by-side cards start level (the stacked-card gap only applies when cards stack) */
+.split2>.card+.card,.split2>*+.card{margin-top:0}
+/* How Each Email Goes Out: the choices wrap inside the cell instead of running past the card */
+.rmodes{display:flex;gap:6px;align-items:center}
+.rmodes .fbtn{padding:4px 8px;font-size:11.5px;white-space:nowrap}
+.rmodes .btn{margin-left:6px;white-space:nowrap}
+.rulest td:last-child,.rulest th:last-child{padding-right:16px;width:1%}
+.rulest td:nth-child(4){max-width:260px}
+.addrgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.addrgrid .chk{border-right:1px solid var(--border)}
 
 /* ===== Elections HQ: the visual layer (boards, maps and cards instead of long lists) ===== */
 .band.tight{padding:14px 16px}
@@ -1752,7 +1762,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const BUILD={at:"2026-11-21T15:12:26Z",fp:"2efb641a"};
+const BUILD={at:"2026-11-21T15:20:09Z",fp:"e15595b2"};
 
 /* ================= the public forms (shared by Elections HQ and the website copies) =================
    EF.nominate(el, {elections, submit, onDone})   elections: [{cycle, type, name, open, closes, groups:[{name, positions:[{seat, position}]}], seats:[{seat, position}], boardSeats}]
@@ -3621,9 +3631,9 @@ function renderOutbox(){
     (!CAN_SEND()?'<div class="banner">This copy can\'t send. Send from Leadership HQ on resources.mismo.org, or open a message here to copy it.</div>':'')+
     band("Sends from "+ELECTIONS_FROM+" (posts to MISMO Connect go from "+CONNECT_FROM().name+"): when you press Send, or automatically where you've chosen", tile(by("draft").filter(o=>(o.sendAfter||"")<=T()).length,"Due to Send","ready and dated today or earlier",{hot:by("draft").some(o=>(o.sendAfter||"")<=T())})+tile(by("draft").length,"Ready for You","every draft waiting")+tile(by("send").length+by("scheduled").length,"Going Out",by("scheduled").length?plural(by("scheduled").length,"automatic one")+" on its date":"you pressed Send")+tile(by("sent").length,"Sent","this election year")+tile(by("address").length+by("failed").length,"Needs Attention","no address yet, or didn't send",{hot:(by("address").length+by("failed").length)>0}))+
     kanbanHtml("kb-out",[{k:"draft",label:"Ready for You",color:"var(--warn)",cards:by("draft").map(card),empty:"Nothing waiting for you"},{k:"send",label:"Going Out",color:"var(--c1)",cards:by("send").concat(by("scheduled")).map(card),empty:"Nothing going out"},{k:"sent",label:"Sent",color:"var(--good)",cards:by("sent").reverse().map(card),limit:15,empty:"Nothing sent yet"},{k:"address",label:"Needs Attention",color:"var(--bad)",cards:by("address").concat(by("failed")).map(card),empty:"Every message has an address"}])+
-    '<div class="split2" style="margin-top:22px"><div class="card"><div class="ch"><h2>How Each Email Goes Out</h2><span class="note">wait for you to send it, send automatically on its date, or don\'t draft it</span></div><div class="cb flush"><div class="tw"><table class="t"><thead><tr><th>Message</th><th>Election</th><th>When</th><th>Goes To</th><th>How</th></tr></thead><tbody>'+
-      RULES.map(r=>{ const m=ruleMode(r); return '<tr><td><b>'+esc(r[2])+'</b></td><td>'+esc(r[1]==="*"?"Every election":TYPES[r[1]].short)+'</td><td>'+esc(r[3]==="event"?"As it happens":mileLabel(r[1],r[3])||r[3])+'</td><td class="note">'+esc(r[5])+'</td><td style="white-space:nowrap">'+[["ask","I\'ll Send It"],["auto","Send Automatically"],["off","Don\'t Draft"]].map(([v,l])=>'<button type="button" class="fbtn" data-rmode="'+esc(RULE_KEY(r))+'|'+v+'" aria-pressed="'+(m===v)+'" style="padding:4px 8px;font-size:11.5px">'+l+'</button>').join(" ")+(r[3]!=="event"&&r[1]!=="*"?' <button type="button" class="btn sm" data-rnow="'+esc(RULE_KEY(r))+'" title="Draft it now so you can read it ahead of time">Draft Now</button>':'')+'</td></tr>'; }).join("")+'</tbody></table></div></div></div>'+
-    '<div class="card"><div class="ch"><h2>Addresses the Outbox Uses</h2><div class="r"><button class="btn sm" type="button" id="ob2-people">Edit</button></div></div><div class="checks">'+
+    '<div style="margin-top:22px"><div class="card"><div class="ch"><h2>How Each Email Goes Out</h2><span class="note">wait for you to send it, send automatically on its date, or don\'t draft it</span></div><div class="cb flush"><div class="tw"><table class="t rulest"><thead><tr><th>Message</th><th>Election</th><th>When</th><th>Goes To</th><th>How</th></tr></thead><tbody>'+
+      RULES.map(r=>{ const m=ruleMode(r); return '<tr><td><b>'+esc(r[2])+'</b></td><td>'+esc(r[1]==="*"?"Every election":TYPES[r[1]].short)+'</td><td>'+esc(r[3]==="event"?"As it happens":mileLabel(r[1],r[3])||r[3])+'</td><td class="note">'+esc(r[5])+'</td><td><div class="rmodes">'+[["ask","I\'ll Send It"],["auto","Send Automatically"],["off","Don\'t Draft"]].map(([v,l])=>'<button type="button" class="fbtn" data-rmode="'+esc(RULE_KEY(r))+'|'+v+'" aria-pressed="'+(m===v)+'">'+l+'</button>').join("")+(r[3]!=="event"&&r[1]!=="*"?'<button type="button" class="btn sm" data-rnow="'+esc(RULE_KEY(r))+'" title="Draft it now so you can read it ahead of time">Draft Now</button>':'')+'</div></td></tr>'; }).join("")+'</tbody></table></div></div></div>'+
+    '<div class="card" style="margin-top:22px"><div class="ch"><h2>Addresses the Outbox Uses</h2><div class="r"><button class="btn sm" type="button" id="ob2-people">Edit</button></div></div><div class="checks addrgrid">'+
       ["MISMO Community"].concat(facilitators()).map(f=>'<div class="chk"><span class="ct"><b>'+esc(f)+'</b><small>'+esc(emailOf(f)||(f==="MISMO Community"?"The all-member community's post-by-email address, for announcements":"No address yet"))+'</small></span></div>').join("")+
       '<div class="chk"><span class="ct"><b>MISMO Connect post addresses</b><small>'+vals("groups").filter(g=>g.connectEmail).length+' of '+vals("groups").filter(g=>g.type==="aof"||g.type==="tf").length+' groups have one. Set them on the Structure page.</small></span><button class="btn sm" type="button" data-go="structure">Structure</button></div>'+
       '<div class="chk"><span class="ct"><b>Nominees and voters</b><small>From the nomination form, and from Voter Lists for the Governance Committee and extra contacts.</small></span></div></div></div></div>';
