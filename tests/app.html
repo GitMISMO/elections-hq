@@ -1077,7 +1077,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 </aside>
 <div class="toast" id="toast" hidden></div>
 <script>
-const BUILD={at:"2026-11-21T14:57:08Z",fp:"0fcd00ab"};
+const BUILD={at:"2026-11-21T14:59:52Z",fp:"54d7ba9e"};
 
 /* ================= the public forms (shared by Elections HQ and the website copies) =================
    EF.nominate(el, {elections, submit, onDone})   elections: [{cycle, type, name, open, closes, groups:[{name, positions:[{seat, position}]}], seats:[{seat, position}], boardSeats}]
@@ -4324,10 +4324,12 @@ function openRecord(id){
 
 /* ---------- the calendar-year Board list ---------- */
 const BOARD_OFFICERS = ()=>((S.settings.main||{}).boardOfficers)||{};
-function boardServed(y){ const a=y+"-01-01", z=y+"-12-31";
-  return boardMembers().filter(l=>{ const s=l.seatedOn||l.termStart||""; const e=l.leftOn||l.termEnd||""; return (!s || s<=z) && (!e || e>=a) && !(l.status==="former" && !e); }); }
+function boardAsOf(y){ const z=y+"-12-31"; return T()<z? T() : z; }
+/* who was on the Board on a given day (the list the auditors get is the Board as of the day it's sent) */
+function boardServed(y,asOf){ const d=asOf||boardAsOf(y);
+  return boardMembers().filter(l=>{ const s=l.seatedOn||l.termStart||""; const e=l.leftOn||l.termEnd||""; if(l.status==="former" && !e) return false; return (!s || s<=d) && (!e || e>=d); }); }
 function boardListText(y,o){
-  const ppl=boardServed(y); const line=l=>[l.name, l.title, l.company].filter(Boolean).join(", ");
+  const ppl=boardServed(y,o.asOf); const line=l=>[l.name, l.title, l.company].filter(Boolean).join(", ");
   const find=n=>n&&ppl.find(l=>norm(l.name)===norm(n)||norm(l.name).indexOf(norm(n))>=0||norm(n).indexOf(norm(l.name))>=0);
   const chair=find(o.chair), vice=find(o.vice);
   const exo=ppl.filter(l=>boardCat(l.seat)==="exo" && l!==chair && l!==vice).sort((a,b)=>byName(a.name,b.name));
@@ -4342,15 +4344,15 @@ function boardListText(y,o){
   return out.join("\n");
 }
 function openBoardList(y){
-  const o=Object.assign({},BOARD_OFFICERS()[y]||{}); const missing=boardServed(y).filter(l=>!l.title).map(l=>l.name);
+  const o=Object.assign({asOf:boardAsOf(y)},BOARD_OFFICERS()[y]||{}); const missing=boardServed(y,o.asOf).filter(l=>!l.title).map(l=>l.name);
   openPane({eye:"Records & Audits · "+y, title:"Board List for "+y, data:Object.assign({viceLabel:"Vice Chair"},o,{text:boardListText(y,o)}), noDirty:true,
-    top:'<p class="note" style="margin:0 0 10px">Everyone on the Board at any point in '+y+', from the roster. Set the officers for '+y+' and press Redraft; edit the text as you like, then Save as a Record.'+(missing.length?' <b>No job title yet for '+plural(missing.length,"member")+':</b> '+esc(missing.join(", "))+' (add it on the Board of Directors page).':'')+'</p>',
-    fields:[{k:"chair",label:"Chair"},{k:"vice",label:"Second Officer"},{k:"viceLabel",label:"Their Title",hint:"Vice Chair or Co-Chair"},{k:"secretary",label:"Board Secretary"},{k:"treasurer",label:"Board Treasurer"},
+    top:'<p class="note" style="margin:0 0 10px">The Board as of the day you choose (the day the list goes out), from the roster. Set the officers for '+y+' and press Redraft; edit the text as you like, then Save as a Record.'+(missing.length?' <b>No job title yet for '+plural(missing.length,"member")+':</b> '+esc(missing.join(", "))+' (add it on the Board of Directors page).':'')+'</p>',
+    fields:[{k:"asOf",label:"As Of",type:"date"},{k:"chair",label:"Chair"},{k:"vice",label:"Second Officer"},{k:"viceLabel",label:"Their Title",hint:"Vice Chair or Co-Chair"},{k:"secretary",label:"Board Secretary"},{k:"treasurer",label:"Board Treasurer"},
       {k:"text",label:"The List",type:"textarea",rows:22,wide:true}],
-    after:b=>{ const btn=document.createElement("button"); btn.className="btn sm"; btn.type="button"; btn.textContent="Redraft"; btn.onclick=()=>{ const v={}; ["chair","vice","viceLabel","secretary","treasurer"].forEach(k=>v[k]=$("#f-"+k,b).value); $("#f-text",b).value=boardListText(y,v); }; const t=$("#f-text",b); t.parentNode.insertBefore(btn,t); },
+    after:b=>{ const btn=document.createElement("button"); btn.className="btn sm"; btn.type="button"; btn.textContent="Redraft"; btn.onclick=()=>{ const v={}; ["asOf","chair","vice","viceLabel","secretary","treasurer"].forEach(k=>v[k]=$("#f-"+k,b).value); $("#f-text",b).value=boardListText(y,v); }; const t=$("#f-text",b); t.parentNode.insertBefore(btn,t); },
     buttons:[{label:"Copy", run:async v=>{ copyText(v.text,"Board list"); }}],
     saveLabel:"Save as a Record",
-    save:async v=>{ const offs=Object.assign({},BOARD_OFFICERS(),{[y]:{chair:v.chair, vice:v.vice, viceLabel:v.viceLabel, secretary:v.secretary, treasurer:v.treasurer}});
+    save:async v=>{ const offs=Object.assign({},BOARD_OFFICERS(),{[y]:{asOf:v.asOf, chair:v.chair, vice:v.vice, viceLabel:v.viceLabel, secretary:v.secretary, treasurer:v.treasurer}});
       await patch("settings","main",{boardOfficers:offs});
       await put("records",uid("rec"),{kind:"boardlist", year:y, title:y+" MISMO Board of Directors List", date:T(), body:v.text, createdAt:new Date().toISOString()}); } });
 }
@@ -4401,7 +4403,7 @@ async function buildCycle(type,y){
 const HELP=[
   ["Getting Started","System Health and bringing things back",'<p><b>System Health</b> (under Records) checks everything Leadership HQ depends on, worst first: saving, the forms flow, the email flow, emails waiting or failed, when the last nomination, ballot and nominee answer came in, Meeting Trackers, and how full the ballot file is. A red count on it in the menu means something needs fixing.</p><p>Nothing is deleted for good. Anything removed (an election, a nominee, a task, an email draft, a voter) is set aside and listed under <b>Recently Removed</b>, where <b>Bring Back</b> restores it.</p><p>If someone else saved a record after you opened it, your save stops and says who changed it and when: close it, open it again, and make your change. The version (build time and fingerprint) shows under Saving in the menu. If a GitHub job fails, you get an email.</p>'],
   ["Getting Started","Leadership HQ",'<p>Leadership HQ (it was Elections HQ) is where MISMO keeps track of its leaders: the <b>Leadership Roster</b>, the <b>Board of Directors</b>, the <b>Structure</b> and <b>Onboarding</b>. Elections are run here too, under Elections and Running the Elections. The address stays resources.mismo.org/elections-hq/.</p>'],
-  ["Getting Started","Records and audits",'<p><b>Records &amp; Audits</b> (under Records and Help) keeps, by year, what goes to the auditors and the Board. Each November MBA Finance asks for the calendar year\'s Board of Directors list and every Board meeting\'s minutes.</p><ol><li>Press <b>Board List for</b> the year. It drafts the list from the roster: everyone on the Board at any point that year, with job title and company, the Chair and second officer, ex officio members, the Board Secretary and Treasurer, and any notes (for example, when a term clock starts). Fix anything, then <b>Save as a Record</b>. Missing job titles are listed; add them on each member (Board of Directors).</li><li>Reply to MBA Finance with the list and the signed minutes.</li><li>Drag the email you sent (saved from Outlook as .msg) onto the page. It becomes a record with the email, its text and every attached file. Any other file can be dropped too, or added to a record with Add Files.</li></ol><p>Every file is kept whole and downloads exactly as it went in.</p>'],
+  ["Getting Started","Records and audits",'<p><b>Records &amp; Audits</b> (under Records and Help) keeps, by year, what goes to the auditors and the Board. Each November MBA Finance asks for the calendar year\'s Board of Directors list and every Board meeting\'s minutes.</p><ol><li>Press <b>Board List for</b> the year. It drafts the list from the roster: everyone on the Board on the day you choose (the day it goes out), with job title and company, the Chair and second officer, ex officio members, the Board Secretary and Treasurer, and any notes (for example, when a term clock starts). Fix anything, then <b>Save as a Record</b>. Missing job titles are listed; add them on each member (Board of Directors).</li><li>Reply to MBA Finance with the list and the signed minutes.</li><li>Drag the email you sent (saved from Outlook as .msg) onto the page. It becomes a record with the email, its text and every attached file. Any other file can be dropped too, or added to a record with Add Files.</li></ol><p>Every file is kept whole and downloads exactly as it went in.</p>'],
   ["Results","Past elections and how long records are kept",'<p>Elections finished more than two years ago are moved out of the working files each January (on the 15th) by the GitHub job <b>Archive past elections</b> in elections-hq-data. Nothing is deleted. Everything that belonged to the election (its nominations, ballots, counting decisions, emails and send log) goes into its own archive file, and <b>Past Elections</b> (under Records) lists them. Open one to see who was elected, when the results were marked final and by whom, the ballot counts and fingerprint, and to download the ballots or everything as a file.</p><p>To see what would move without moving anything: GitHub › elections-hq-data › Actions › Archive past elections › Run workflow, with Dry run ticked.</p>'],
   ["Results","Audit Trail",'<p><b>Audit Trail</b> on an election\'s results (and on each workgroup election once ballots are in) downloads every recorded step as a spreadsheet: each ballot as it came in with its link check, every Count This One and set-aside with who did it and when, winners set by hand, who marked the results final with the ballot fingerprint, and every email sent. It is also attached to the Request to Certify for MBA Legal. GitHub keeps every save to elections-hq-data as well, so nothing can change without a record.</p>'],
   ["Voting","The flood guard",'<p>The filing job keeps every entry, but holds one for you to look at when the same email address has sent three or more to the same form in a day, or when sixty or more entries arrive within ten minutes. A held ballot shows On Hold with the reason; use Count This One or set it aside as usual. A held nomination shows Many From One Address or Came In a Flood in From the Form. A stronger human check (Cloudflare Turnstile) can be added later if MISMO sets up a Cloudflare account.</p>'],
