@@ -1077,7 +1077,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 </aside>
 <div class="toast" id="toast" hidden></div>
 <script>
-const BUILD={at:"2026-11-21T14:59:52Z",fp:"54d7ba9e"};
+const BUILD={at:"2026-11-21T15:03:56Z",fp:"87debad2"};
 
 /* ================= the public forms (shared by Elections HQ and the website copies) =================
    EF.nominate(el, {elections, submit, onDone})   elections: [{cycle, type, name, open, closes, groups:[{name, positions:[{seat, position}]}], seats:[{seat, position}], boardSeats}]
@@ -4282,11 +4282,11 @@ function renderRecords(){
   const rs=vals("records").filter(r=>+r.year===REC_Y).sort((a,b)=>String(b.sentOn||b.date||b.createdAt||"").localeCompare(String(a.sentOn||a.date||a.createdAt||"")));
   const files=rs.reduce((n,r)=>n+(r.files||[]).length,0); const audits=rs.filter(r=>r.kind==="audit");
   const last=vals("records").filter(r=>r.kind==="audit").sort((a,b)=>String(b.year).localeCompare(String(a.year)))[0];
-  const nextAsk = last? "November "+(+last.year+1) : "each November";
+  const nextAsk = last? "Nov "+(+last.year+1) : "Each Nov";
   const row=r=>'<tr class="click" data-rec="'+esc(r.id)+'"><td>'+esc(fS(r.sentOn||r.date||(r.createdAt||"").slice(0,10)))+'</td><td><b>'+esc(r.title||"(untitled)")+'</b><span class="t2">'+esc([r.from&&("From "+r.from), r.to&&("To "+r.to)].filter(Boolean).join(" · "))+'</span></td><td>'+chip(REC_KIND,r.kind||"other")+'</td><td>'+((r.files||[]).length? (r.files||[]).map(f=>'<button class="btn sm" type="button" data-dl="'+esc(r.id+"|"+f.fid)+'" title="'+esc(fileSize(f.size))+'">'+esc(f.name.length>28?f.name.slice(0,25)+"…":f.name)+'</button>').join(" ") : '<span class="note">none</span>')+'</td></tr>';
   el.innerHTML=phead("Leadership","Records & Audits","What goes to the auditors and the Board each year: the request and the reply, the Board list, the signed minutes and their files, kept together by year.",
       '<label class="yearpick">Year <select id="rc-y">'+ys.map(y=>'<option value="'+y+'"'+(y===REC_Y?" selected":"")+'>'+y+'</option>').join("")+'</select></label><button class="btn" type="button" id="rc-list">Board List for '+REC_Y+'</button><button class="btn pri" type="button" id="rc-add">+ Record</button>')+
-    band(REC_Y+" Records", tile(rs.length,"Records","kept for "+REC_Y)+tile(files,"Files","emails, minutes and lists")+tile(audits.length,"Audit Requests",audits.length?"answered "+fS(audits[0].sentOn||""):"none yet this year",{hot:false})+tile(rs.reduce((n,r)=>n+(r.files||[]).filter(f=>/minutes/i.test(f.name)&&!/\.msg$/i.test(f.name)).length,0),"Minutes","signed minutes kept")+tile(nextAsk,"Next Audit Request","MBA Finance asks for the year's Board list and minutes"))+
+    band(REC_Y+" Records", tile(rs.length,"Records",plural(files,"file")+" kept for "+REC_Y)+tile(audits.length,"Audit Requests",audits.length?"answered "+fS(audits[0].sentOn||""):"none yet this year",{hot:false})+tile(rs.reduce((n,r)=>n+(r.files||[]).filter(f=>/minutes/i.test(f.name)&&!/\.msg$/i.test(f.name)).length,0),"Minutes","signed minutes kept")+tile(nextAsk,"Next Audit Request","MBA Finance asks for the year's Board list and minutes"))+
     '<div class="split2" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)"><div class="card"><div class="ch"><h2>'+REC_Y+' Records</h2><span class="cnt">'+rs.length+'</span><span class="note">click a record to see the email and its details</span></div>'+
       '<div class="recdrop" id="rc-drop"><b>Drop an email (.msg) or files here</b><span>An Outlook email becomes a record with its attachments; other files are kept as they are. Or <label class="lnk">choose files<input type="file" id="rc-pick" multiple hidden></label>.</span></div>'+
       '<div class="cb flush"><div class="tw"><table class="t"><thead><tr><th>Date</th><th>Record</th><th>Kind</th><th>Files</th></tr></thead><tbody>'+(rs.length? rs.map(row).join("") : '<tr><td colspan="4" class="note">'+(loading("records")?"Loading…":"Nothing kept for "+REC_Y+" yet. Drop the email you sent, or press + Record.")+'</td></tr>')+'</tbody></table></div></div></div>'+
