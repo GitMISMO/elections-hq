@@ -75,6 +75,13 @@ const r = await p.evaluate(async () => {
     b6: { id: 'b6', gtype: 'board', name: 'New Person', company: 'X', seat: 'At Large', status: 'active', termStart: '2027-01-01' } };
   const bl = boardListText(2026, { asOf: '2026-11-19', chair: 'Tim Bowler', vice: 'Mike Hogan', secretary: 'Michael Briggs', treasurer: 'Alexandra Brinton' });
   ok('the Board list is the Board as of the day it goes out, with officers and notes', /1\. CHAIR: Tim Bowler, Chief Innovation Officer, ICE/.test(bl) && /2\. VICE CHAIR: Mike Hogan/.test(bl) && /Eric Lapin/.test(bl) && /Leslie Peeler/.test(bl) && !/New Person/.test(bl) && !/Left Early/.test(bl) && /EX-OFFICIO MEMBERS\n1\. Brian Vieaux/.test(bl) && /BOARD SECRETARY: Michael Briggs/.test(bl) && /clock starts January 2027/.test(bl));
+  /* the weekly voter list from Aptify */
+  S.voters = { h: { id: 'h', list: 'mvr', email: 'hand@x.example', name: 'Hand Added', company: 'X', role: 'MVR', code: 'HCODE' }, old: { id: 'old', list: 'mvr', email: 'gone@y.example', name: 'Gone', company: 'Y', role: 'MVR', code: 'GCODE', source: 'aptify' }, keep: { id: 'keep', list: 'mvr', email: 'keep@z.example', name: 'Keep Me', company: 'Z Old', role: 'MVA', code: 'KCODE', source: 'aptify' } };
+  S.voterpull = { main: { ok: true, receivedAt: '2026-11-23T11:20:00Z', count: 2, rows: [ { email: 'keep@z.example', name: 'Keep Me', company: 'Z Bank', role: 'MVR' }, { email: 'new@w.example', name: 'New Person', company: 'W', role: 'MVA' } ] } };
+  S.settings.automation = {};
+  const vr = await applyVoterPull(true);
+  const keep = S.voters.keep;
+  ok('the Aptify list adds, updates and sets aside, keeping links and hand-added people', vr && vr.added === 1 && vr.updated === 1 && vr.removed === 1 && keep.code === 'KCODE' && keep.role === 'MVR' && keep.company === 'Z Bank' && !!S.voters.h && !S.voters.old && vals('voters').some(v => v.email === 'new@w.example' && v.code));
   /* past elections, read-only */
   S.archive = { 'archive/2024-domain': { id: '2024-domain', cycle: '2024-domain', type: 'domain', year: 2024, final: true, finalBy: 'Jonna', dates: { results: '2023-12-07' }, results: [{ seat: 'Data · Chair', count: 1, elected: [{ name: 'Ann Lee', company: 'Bank A' }] }], counts: { votes: 3 }, file: 'arch-2024-domain', archivedAt: '2026-01-15T15:23:00Z' } };
   renderPast(); ok('past elections list what was archived', /2024/.test(document.querySelector('#page-past').textContent) && /3/.test(document.querySelector('#page-past').textContent));
