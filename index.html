@@ -1752,7 +1752,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const BUILD={at:"2026-11-21T15:03:56Z",fp:"87debad2"};
+const BUILD={at:"2026-11-21T15:12:26Z",fp:"2efb641a"};
 
 /* ================= the public forms (shared by Elections HQ and the website copies) =================
    EF.nominate(el, {elections, submit, onDone})   elections: [{cycle, type, name, open, closes, groups:[{name, positions:[{seat, position}]}], seats:[{seat, position}], boardSeats}]
@@ -3458,7 +3458,8 @@ function renderRoster(){
   const el=$("#page-roster"); const k=SUB.roster||"aof"; const q=UI.rosterQ;
   const kinds=[["domain","Business Domains"],["aof","Areas of Focus"],["tf","Task Forces"],["process","Governance Process"],["gov","Governance"],["coc","Council of Chairs"],["board","Board"],["other","Not in the Structure"],["former","Former"]];
   const all=vals("leaders");
-  const typeOf=l=>{ const g=groupByName(l.group, l.gtype); return g? g.type : (l.gtype||"other"); };
+  /* a leader whose group isn't in the structure (for example a workgroup that held its own election) shows under Not in the Structure */
+  const typeOf=l=>{ const g=groupByName(l.group, l.gtype); const t=g? g.type : (l.gtype||"other"); return kinds.some(x=>x[0]===t)? t : "other"; };
   const count=kk=>kk==="former"?all.filter(x=>x.status==="former").length: kk==="coc"? all.filter(l=>l.status!=="former" && typeOf(l)==="domain" && /^chair$/i.test(l.position)).length : all.filter(x=>x.status!=="former" && (kk==="board"?x.gtype==="board":typeOf(x)===kk && x.gtype!=="board")).length;
   const order=p=>{ const i=["Chair","Co-Chair","Vice Chair","Vice-Chair","Care and Feeding Lead"].findIndex(x=>posMatch(x,p)); return i<0?9:i; };
   let body='';
