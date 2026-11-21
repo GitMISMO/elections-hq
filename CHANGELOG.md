@@ -2,6 +2,12 @@
 
 One line per change people would notice. Newest first.
 
+## November 21, 2026
+- Elections HQ is now Leadership HQ: the menu starts with Leadership (Roster, Board of Directors, Structure, Onboarding) and opens on the Leadership Roster; elections are run from the Elections sections. The address stays /elections-hq/.
+- Records & Audits: keep each year's audit request and reply, the Board list and the signed minutes. Drop an Outlook email and it becomes a record with its attachments; every file downloads as it went in.
+- Board List for a year: drafts the calendar-year Board list (officers, members with title and company, ex officio, Secretary, Treasurer, notes) to check and save.
+- Board members have Job Title, Joined the Board and a Note for the Board List.
+
 ## November 17, 2026
 - Elections can close nominations and voting at a set Eastern time (Business Domains: 5 p.m. Friday). The forms close on time and the emails, ballot and request to MBA Legal say the time.
 - Architecture split in two: the workgroup is an Area of Focus under Data & Technology Enablement; the approval body stays in the Governance Process.
