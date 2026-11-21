@@ -66,6 +66,15 @@ const r = await p.evaluate(async () => {
   ok('dragged back, the leaving item is set aside', !Object.values(S.slate).some(x => x.leader === 'bm1' && x.kind === 'exit') && !boardPicture(bc).leaving.some(l => l.id === 'bm1'));
   await boardDrop(bc, boardPicture(bc), { mem: 'bm1', from: 'sfl' }, 'svc');
   ok('a member dragged to another category changes seat', boardCat(S.leaders.bm1.seat) === 'svc');
+  /* the calendar-year Board list */
+  S.leaders = { b1: { id: 'b1', gtype: 'board', name: 'Tim Bowler', title: 'Chief Innovation Officer', company: 'ICE', seat: 'SF - Vendor', status: 'active', termStart: '2024-01-01', termEnd: '2027-12-31' },
+    b2: { id: 'b2', gtype: 'board', name: 'Mike Hogan', title: 'Chief Information Officer', company: 'PennyMac', seat: 'SF Lender', status: 'active', termStart: '2024-01-01', termEnd: '2027-12-31' },
+    b3: { id: 'b3', gtype: 'board', name: 'Eric Lapin', title: 'Vice President', company: 'FICO', seat: 'SF - Credit', status: 'active', seatedOn: '2026-09-01', termStart: '2027-01-01', termEnd: '2030-12-31', boardNote: 'Term starts September 2026, but the clock starts January 2027' },
+    b4: { id: 'b4', gtype: 'board', name: 'Leslie Peeler', company: 'Cenlar FSB', seat: 'SF Lender', status: 'former', termStart: '2026-01-01', termEnd: '2026-09-30' },
+    b5: { id: 'b5', gtype: 'board', name: 'Brian Vieaux', company: 'MISMO', seat: 'MISMO President', status: 'active', termStart: '2025-10-01' },
+    b6: { id: 'b6', gtype: 'board', name: 'New Person', company: 'X', seat: 'At Large', status: 'active', termStart: '2027-01-01' } };
+  const bl = boardListText(2026, { chair: 'Tim Bowler', vice: 'Mike Hogan', secretary: 'Michael Briggs', treasurer: 'Alexandra Brinton' });
+  ok('the Board list covers everyone on the Board that year, with officers and notes', /1\. CHAIR: Tim Bowler, Chief Innovation Officer, ICE/.test(bl) && /2\. VICE CHAIR: Mike Hogan/.test(bl) && /Eric Lapin/.test(bl) && /Leslie Peeler/.test(bl) && !/New Person/.test(bl) && /EX-OFFICIO MEMBERS\n1\. Brian Vieaux/.test(bl) && /BOARD SECRETARY: Michael Briggs/.test(bl) && /clock starts January 2027/.test(bl));
   /* past elections, read-only */
   S.archive = { 'archive/2024-domain': { id: '2024-domain', cycle: '2024-domain', type: 'domain', year: 2024, final: true, finalBy: 'Jonna', dates: { results: '2023-12-07' }, results: [{ seat: 'Data · Chair', count: 1, elected: [{ name: 'Ann Lee', company: 'Bank A' }] }], counts: { votes: 3 }, file: 'arch-2024-domain', archivedAt: '2026-01-15T15:23:00Z' } };
   renderPast(); ok('past elections list what was archived', /2024/.test(document.querySelector('#page-past').textContent) && /3/.test(document.querySelector('#page-past').textContent));
