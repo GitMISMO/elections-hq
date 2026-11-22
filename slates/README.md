@@ -1,6 +1,6 @@
 # slates
 
-What the public forms read. Elections HQ writes these files here through the relay project
+What the public forms read. Leadership HQ writes these files here through the relay project
 `elections-hq-public`; nobody edits them by hand.
 
 - `nominate.json`: the elections open for nominations and their seats
