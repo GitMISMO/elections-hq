@@ -1,6 +1,9 @@
-# Elections HQ Change Log
+# Leadership HQ Change Log
 
 One line per change people would notice. Newest first.
+
+## November 22, 2026
+- Leadership HQ everywhere: page text, help, the GitHub jobs, the public forms' notes and the Aptify reports now say Leadership HQ. The address (/elections-hq/), the repositories and the save relay project keep elections-hq, so nothing that connects to it changes. Staff previews saved under the old name are still recognized.
 
 ## November 21, 2026
 - Voter Lists › MVRs and MVAs updates by itself from Aptify every Monday (report ElectionsHQ_VotingReps_Feed, emailed to Jonna (the elections mailbox once she has full access) and sent on by the flow Leadership HQ - Aptify Voting Reps). New people get their own ballot link, everyone keeps theirs, people added by hand stay, and nobody is taken off while a ballot is open. System Health warns if a week is missed.

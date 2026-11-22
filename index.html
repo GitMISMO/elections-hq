@@ -9,7 +9,7 @@
   in the PRIVATE repository GitMISMO/elections-hq-data). No GitHub token or other secret ever goes
   in this file, and no records either: they all arrive from elections-hq-data after sign-in.
 -->
-<html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><head><meta charset="utf-8"><meta name="description" content="MISMO’s leaders, the Board, records and audits, and the yearly elections"><meta name="theme-color" content="#0E7490"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Leadership HQ</title>
 <!-- Hide the app until someone is signed in. If this file is replaced by an upload, carry this block across. -->
 <style>html.hq-out body > *:not(#hq-gate):not(.rs-scrim){visibility:hidden}</style>
@@ -36,7 +36,7 @@
 })();</script>
 <script>
 /* ============================================================================
-   ELECTIONS HQ ON resources.mismo.org - the one door to MISMO's save relay
+   LEADERSHIP HQ ON resources.mismo.org - the one door to MISMO's save relay
    ----------------------------------------------------------------------------
    Built the same way as Marketing HQ's, Member 360's and Summit HQ's doors.
    Leadership HQ was built inside Claude, where it reached its records through
@@ -595,7 +595,7 @@
   /* ---------- Meeting Trackers: the source of truth for which groups are active ----------
      Meeting Trackers publishes a summary (feeds/elections in meeting-trackers-data) each day it is
      opened: every group, archived or on hold, meetings held each year, the companies that took
-     part, and each person's attendance. Elections HQ reads it here, read-only. */
+     part, and each person's attendance. Leadership HQ reads it here, read-only. */
   window.__hqMT = {
     load: function () {
       var rs = RS(), tok = rs && rs.token(); if (!tok) return Promise.resolve(null);
@@ -617,7 +617,7 @@
             var data = (b && b.data) || { docs: {} }; data.docs = data.docs || {};
             var doc = data.docs['leaders/all'] || { items: {} }; doc.items = doc.items || {};
             var at = new Date().toISOString();
-            Object.keys(updates).forEach(function (gk) { doc.items[gk] = { list: updates[gk], by: by || 'Elections HQ', at: at, src: 'Elections HQ' }; });
+            Object.keys(updates).forEach(function (gk) { doc.items[gk] = { list: updates[gk], by: by || 'Leadership HQ', at: at, src: 'Leadership HQ' }; });
             doc.updated = at; data.docs['leaders/all'] = doc;
             return fetch(url, { method: 'PUT', cache: 'no-store', headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ content: data, sha: (b && b.sha) || null }) })
               .then(function (w) { if (w.status === 409 && n < 5) return new Promise(function (ok) { setTimeout(ok, 400 * (n + 1)); }).then(function () { return attempt(n + 1); });
@@ -1215,7 +1215,7 @@ body{margin:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:no
 #rs-account .rs-who,#rs-account .rs-signin{border-radius:4px}
 .banner{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:13px}
 
-/* ===== Elections HQ additions (built on the Marketing HQ sheet above) ===== */
+/* ===== Leadership HQ additions (built on the Marketing HQ sheet above) ===== */
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
 #rs-account{flex:0 0 auto;display:inline-flex;align-items:center}
@@ -1353,7 +1353,7 @@ tr.join td{background:color-mix(in srgb,var(--good-soft) 70%,transparent)}
 .addrgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
 .addrgrid .chk{border-right:1px solid var(--border)}
 
-/* ===== Elections HQ: the visual layer (boards, maps and cards instead of long lists) ===== */
+/* ===== Leadership HQ: the visual layer (boards, maps and cards instead of long lists) ===== */
 .band.tight{padding:14px 16px}
 .band.tight .today{margin-bottom:10px}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
@@ -1762,9 +1762,9 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const BUILD={at:"2026-11-21T22:01:11Z",fp:"81195af5"};
+const BUILD={at:"2026-11-22T18:05:01Z",fp:"210733df"};
 
-/* ================= the public forms (shared by Elections HQ and the website copies) =================
+/* ================= the public forms (shared by Leadership HQ and the website copies) =================
    EF.nominate(el, {elections, submit, onDone})   elections: [{cycle, type, name, open, closes, groups:[{name, positions:[{seat, position}]}], seats:[{seat, position}], boardSeats}]
    EF.ballot(el, {slate, code, submit})            slate: what slateOf() returns
    submit(record) returns a promise; the record is what gets filed (nomsubs or votes). */
@@ -1895,7 +1895,7 @@ var EF = (function(){
 })();
 "use strict";
 /* ============================================================================
-   ELECTIONS HQ: MISMO's one place to run the yearly elections.
+   LEADERSHIP HQ (was Elections HQ): where MISMO keeps track of its leaders, and runs the yearly elections.
    CoP leadership, the Governance Committee, the Board of Directors slate and the
    Council of Chairs Vice-Chair: seats, nominations, ballots, the count, the timeline,
    the emails and posts, onboarding the new leaders, and the leadership roster.
@@ -2207,7 +2207,7 @@ function voteStatus(c){
     let st={k:"counted", why:""};
     const win=ballotWindowCheck(c,v);
     if(v.hp) st={k:"excluded", why:"Caught by the spam check"};
-    else if(v.via==="Elections HQ preview") st={k:"excluded", why:"A staff preview, not a real ballot"};
+    else if(/^(Elections|Leadership) HQ preview$/.test(v.via||"")) st={k:"excluded", why:"A staff preview, not a real ballot"};
     else if(win) st={k:"excluded", why:win};
     else if(v.code && rollCode[v.code] && usedCode[v.code]) st={k:"excluded", why:"This personal link was already used for an earlier ballot"};
     else if(roll.length && !(v.code && rollCode[v.code]) && !rollEmail.has(String((v.voter||{}).email||"").toLowerCase())) st={k:"hold", why:"Not on the voter list"};
@@ -2643,7 +2643,7 @@ function openNominateForm(opts){
   opts=opts||{};
   const cfg=nominateConfig(); if(opts.all) cfg.forEach(x=>x.open=true);
   openPane({eye:"Public Form · Preview", title:"Nominate a Leader", data:{}, noFocus:true, noDirty:true, extra:'<div id="ef-host"></div>',
-    after:b=>{ EF.nominate($("#ef-host",b),{elections:cfg, submit:rec=>put("nomsubs",rec.id,Object.assign({},rec,{via:"Elections HQ preview"}))}); }});
+    after:b=>{ EF.nominate($("#ef-host",b),{elections:cfg, submit:rec=>put("nomsubs",rec.id,Object.assign({},rec,{via:"Leadership HQ preview"}))}); }});
 }
 function openBallotForm(c,opts){
   opts=opts||{};
@@ -3696,7 +3696,7 @@ function openConfirmPreview(nid){
   openPane({eye:"What the Nominee Sees", title:"Confirm Your Nomination", data:{}, noFocus:true, noDirty:true,
     extra:'<div class="ef"><fieldset><legend>'+esc(fullName(n))+', you\'ve been nominated for '+esc(s.position||"")+' of '+esc(s.group||"")+'</legend><div class="opts"><label class="opt"><input type="radio" name="cf" value="yes"><span><b>Yes, I accept the nomination</b></span></label><label class="opt"><input type="radio" name="cf" value="no"><span><b>No, thank you</b></span></label></div><div class="field" style="margin-top:10px"><label for="cf-note">Anything we should know? <span class="efn">(optional)</span></label><input type="text" id="cf-note"></div></fieldset><button class="btn pri" type="button" id="cf-go">Send My Answer</button></div>',
     after:b=>{ $("#cf-go",b).onclick=async()=>{ const a=(b.querySelector('input[name=cf]:checked')||{}).value; if(!a){ toast("Choose yes or no"); return; } let tok=n.token; if(!tok){ tok=token(); await patch("nominations",n.id,{token:tok}); }
-      await put("responses",uid("r"),{n:n.id, t:tok, answer:a, note:$("#cf-note",b).value, at:new Date().toISOString(), via:"Elections HQ preview"}); PILOT_AT=0; closePane(true); toast("Answer logged; the nomination updates in a moment"); setTimeout(autopilot,300); }; }});
+      await put("responses",uid("r"),{n:n.id, t:tok, answer:a, note:$("#cf-note",b).value, at:new Date().toISOString(), via:"Leadership HQ preview"}); PILOT_AT=0; closePane(true); toast("Answer logged; the nomination updates in a moment"); setTimeout(autopilot,300); }; }});
 }
 const _openNomination = openNomination;
 openNomination = function(id,preset){ _openNomination(id,preset); if(!id) return; const n=S.nominations[id]; if(!n) return; const f=$("#pane-foot");
@@ -3803,7 +3803,7 @@ async function pushMt(){
   if(MTPUSHING || !window.__hqMT || !window.__hqMT.saveLeaders || !CANWRITE) return;
   const pend=vals("mtpush").filter(x=>x.status==="pending"); if(!pend.length) return;
   MTPUSHING=true;
-  try{ const up={}; pend.forEach(x=>{ up[x.gk]=x.list; }); await window.__hqMT.saveLeaders(up,"Elections HQ");
+  try{ const up={}; pend.forEach(x=>{ up[x.gk]=x.list; }); await window.__hqMT.saveLeaders(up,"Leadership HQ");
     for(const x of pend) await patch("mtpush",x.id,{status:"done", doneAt:new Date().toISOString()});
     toast("Meeting Trackers leadership updated for "+plural(pend.length,"group"),4000);
   }catch(e){ for(const x of pend) await patch("mtpush",x.id,{lastError:(e&&e.message)||"didn't save", triedAt:new Date().toISOString()}); }
@@ -5048,7 +5048,7 @@ const _renderTabR = renderTab;
 renderTab = function(t){ if(t!=="records") return _renderTabR(t); try{ renderRecords(); }catch(e){ console.error(e); $("#page-records").innerHTML='<div class="empty">Something on this page didn\'t draw: '+esc(e.message)+'</div>'; } };
 
 /* ======================= VOTER LIST FROM APTIFY, AUTOMATICALLY (November 21, 2026) =======================
-   Every Monday Reporting Services emails the ElectionsHQ_VotingReps_Feed report (CSV) to the elections
+   Every Monday Reporting Services emails the LeadershipHQ_VotingReps_Feed report (CSV) to the elections
    mailbox; the flow "Leadership HQ - Aptify Voting Reps" sends it to elections-hq-data, where the GitHub
    job "Aptify voting reps" checks it and saves data/voterpull.json (doc voterpull/main). The next time
    Leadership HQ is open, the list is applied to Voter Lists › MVRs and MVAs:
@@ -5096,7 +5096,7 @@ renderVoters = function(){ _renderVotersVP(); const el=$("#page-voters"); if(!el
   card.innerHTML='<div class="ch"><h2>From Aptify, Automatically</h2><span class="note">every Monday morning; nothing to paste</span><div class="r"><button class="btn sm" type="button" id="vp-now"'+(p&&p.ok?'':' disabled')+'>Apply the Latest List Again</button></div></div><div class="checks" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">'+
     '<div class="chk"><span class="ct"><b>Latest list</b><small>'+(p? (p.ok? esc(whenET(p.receivedAt))+': '+plural(p.count||0,"person","people")+" at "+plural(p.companies||0,"company","companies") : 'Not used: '+esc(p.problem||"it didn't look right")) : (loading("voterpull")?"Loading…":"None yet. The first comes on Monday."))+'</small></span></div>'+
     '<div class="chk"><span class="ct"><b>Applied here</b><small>'+(a? esc(whenET(a.appliedAt))+': '+a.added+' added, '+a.updated+' updated, '+a.removed+' set aside'+(a.kept?' ('+esc(a.kept)+')':'') : 'Not yet')+'</small></span></div>'+
-    '<div class="chk"><span class="ct"><b>Where it comes from</b><small>Each member company\'s MISMO Voting Representative and Alternate in Aptify (report ElectionsHQ_VotingReps_Feed). People added here by hand stay on the list.</small></span></div></div>';
+    '<div class="chk"><span class="ct"><b>Where it comes from</b><small>Each member company\'s MISMO Voting Representative and Alternate in Aptify (report LeadershipHQ_VotingReps_Feed). People added here by hand stay on the list.</small></span></div></div>';
   const band=el.querySelector(".band"); if(band) band.after(card); else el.prepend(card);
   const b=$("#vp-now",card); if(b) b.onclick=async()=>{ const r=await applyVoterPull(true); if(!r) toast("Nothing to apply yet"); renderVoters(); };
 };
@@ -5148,7 +5148,7 @@ async function buildCycle(type,y){
 /* ================= Help ================= */
 const HELP=[
   ["Getting Started","System Health and bringing things back",'<p><b>System Health</b> (under Records) checks everything Leadership HQ depends on, worst first: saving, the forms flow, the email flow, emails waiting or failed, when the last nomination, ballot and nominee answer came in, Meeting Trackers, and how full the ballot file is. A red count on it in the menu means something needs fixing.</p><p>Nothing is deleted for good. Anything removed (an election, a nominee, a task, an email draft, a voter) is set aside and listed under <b>Recently Removed</b>, where <b>Bring Back</b> restores it.</p><p>If someone else saved a record after you opened it, your save stops and says who changed it and when: close it, open it again, and make your change. The version (build time and fingerprint) shows under Saving in the menu. If a GitHub job fails, you get an email.</p>'],
-  ["Getting Started","Leadership HQ",'<p>Leadership HQ (it was Elections HQ) is where MISMO keeps track of its leaders: the <b>Leadership Roster</b>, the <b>Board of Directors</b>, the <b>Structure</b> and <b>Onboarding</b>. Elections are run here too, under Elections and Running the Elections. The address stays resources.mismo.org/elections-hq/.</p>'],
+  ["Getting Started","Leadership HQ",'<p>Leadership HQ is where MISMO keeps track of its leaders: the <b>Leadership Roster</b>, the <b>Board of Directors</b>, the <b>Structure</b> and <b>Onboarding</b>. Elections are run here too, under Elections and Running the Elections. The address stays resources.mismo.org/elections-hq/.</p>'],
   ["Getting Started","Records and audits",'<p><b>Records &amp; Audits</b> (under Records and Help) keeps, by year, what goes to the auditors and the Board. Each November MBA Finance asks for the calendar year\'s Board of Directors list and every Board meeting\'s minutes.</p><ol><li>Press <b>Board List for</b> the year. It drafts the list from the roster: everyone on the Board on the day you choose (the day it goes out), with job title and company, the Chair and second officer, ex officio members, the Board Secretary and Treasurer, and any notes (for example, when a term clock starts). Fix anything, then <b>Save as a Record</b>. Missing job titles are listed; add them on each member (Board of Directors).</li><li>Reply to MBA Finance with the list and the signed minutes.</li><li>Drag the email you sent (saved from Outlook as .msg) onto the page. It becomes a record with the email, its text and every attached file. Any other file can be dropped too, or added to a record with Add Files.</li></ol><p>Every file is kept whole and downloads exactly as it went in.</p>'],
   ["Results","Past elections and how long records are kept",'<p>Elections finished more than two years ago are moved out of the working files each January (on the 15th) by the GitHub job <b>Archive past elections</b> in elections-hq-data. Nothing is deleted. Everything that belonged to the election (its nominations, ballots, counting decisions, emails and send log) goes into its own archive file, and <b>Past Elections</b> (under Records) lists them. Open one to see who was elected, when the results were marked final and by whom, the ballot counts and fingerprint, and to download the ballots or everything as a file.</p><p>To see what would move without moving anything: GitHub › elections-hq-data › Actions › Archive past elections › Run workflow, with Dry run ticked.</p>'],
   ["Results","Audit Trail",'<p><b>Audit Trail</b> on an election\'s results (and on each workgroup election once ballots are in) downloads every recorded step as a spreadsheet: each ballot as it came in with its link check, every Count This One and set-aside with who did it and when, winners set by hand, who marked the results final with the ballot fingerprint, and every email sent. It is also attached to the Request to Certify for MBA Legal. GitHub keeps every save to elections-hq-data as well, so nothing can change without a record.</p>'],
