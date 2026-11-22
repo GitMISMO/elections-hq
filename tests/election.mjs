@@ -1,4 +1,4 @@
-// Runs made-up elections through the real Elections HQ code (tests/app.html, the same code as index.html
+// Runs made-up elections through the real Leadership HQ code (tests/app.html, the same code as index.html
 // without the sign-in) in a browser, and checks the counting rules. No real records are used.
 import { chromium } from 'playwright';
 import path from 'node:path';
@@ -13,7 +13,7 @@ const r = await p.evaluate(async () => {
   S.seats = { 'wg-t__co-chair': { id: 'wg-t__co-chair', cycle: 'wg-t', group: 'Test DWG', position: 'Co-Chair', count: 2 } };
   S.nominations = { a: { id: 'a', cycle: 'wg-t', seat: 'wg-t__co-chair', status: 'confirmed', first: 'Ann', last: 'A' }, b: { id: 'b', cycle: 'wg-t', seat: 'wg-t__co-chair', status: 'confirmed', first: 'Bo', last: 'B' }, c: { id: 'c', cycle: 'wg-t', seat: 'wg-t__co-chair', status: 'confirmed', first: 'Cy', last: 'C' } };
   const V = (id, co, ch, at, x) => Object.assign({ id, cycle: 'wg-t', group: 'Test DWG', voter: { company: co, email: id + '@example.com' }, choices: { 'wg-t__co-chair': ch }, submittedAt: at, receivedAt: at }, x || {});
-  S.votes = { v1: V('v1', 'Acme', ['a', 'a', 'a', 'b', 'c'], '2026-11-10T15:00:00.000Z'), v2: V('v2', 'Beta', ['c'], '2026-11-13T17:05:00.000Z'), v3: V('v3', 'Gamma', ['c'], '2026-11-13T17:04:00.000Z', { submittedAt: '2026-11-13T16:59:00.000Z' }), v4: V('v4', 'Delta', ['b'], '2026-11-10T15:00:00.000Z', { via: 'Elections HQ preview' }), v5: V('v5', 'Eps', ['b'], '2026-11-08T15:00:00.000Z') };
+  S.votes = { v1: V('v1', 'Acme', ['a', 'a', 'a', 'b', 'c'], '2026-11-10T15:00:00.000Z'), v2: V('v2', 'Beta', ['c'], '2026-11-13T17:05:00.000Z'), v3: V('v3', 'Gamma', ['c'], '2026-11-13T17:04:00.000Z', { submittedAt: '2026-11-13T16:59:00.000Z' }), v4: V('v4', 'Delta', ['b'], '2026-11-10T15:00:00.000Z', { via: 'Leadership HQ preview' }), v5: V('v5', 'Eps', ['b'], '2026-11-08T15:00:00.000Z') };
   S.voteflags = {};
   const c = S.cycles['wg-t']; const st = voteStatus(c); const t = tally(c)['wg-t__co-chair'];
   ok('repeated picks count once and never more than the seats', t.a === 1 && t.b === 1);
@@ -41,7 +41,7 @@ const r = await p.evaluate(async () => {
   const pasted = readVoterRows('ID\tShipToCompany\tLine1_ProductName\tOther Function\tPrimary Email\tFirst Name\tLast Name\n1\tExample Bank\tMISMO Corporate Membership\tMISMO Voting Representative\tr@bank.example\tRay\tR\n1\tExample Bank\tMISMO Corporate Membership\tMISMO Voting Alternate\tm@bank.example\tMo\tM\n1\tExample Bank\tMISMO Corporate Membership\tCompany Administrator\ta@bank.example\tAl\tA');
   ok('the Aptify report pastes as it comes, keeping only MVRs and MVAs', pasted.rows.length === 2 && pasted.skipped === 1 && pasted.rows[0].role === 'MVR' && pasted.rows[1].role === 'MVA' && pasted.rows[0].name === 'Ray R' && pasted.rows[0].company === 'Example Bank');
   const rep = readVoterRows('Company ID\tCompany\tFirst Name\tLast Name\tPrimary Email\tOther Function\tFunction Ended\tMembership\tMembership Ends\n9229539\tAbsolute Home Mortgage Corp.\tErica\tAdams\te@ahm.example\tMISMO Voting Representative\t\tMISMO Corporate Membership\t2027-06-30\n9229539\tAbsolute Home Mortgage Corp.\tMatt\tV\tm@ahm.example\tMISMO Voting Alternate\t\tMISMO Corporate Membership\t2027-06-30');
-  ok('the ElectionsHQ_VotingReps report pastes as it comes', rep.rows.length === 2 && rep.rows[0].companyId === '9229539' && rep.rows[0].company === 'Absolute Home Mortgage Corp.' && rep.rows[1].role === 'MVA' && rep.rows[0].email === 'e@ahm.example');
+  ok('the LeadershipHQ_VotingReps report pastes as it comes', rep.rows.length === 2 && rep.rows[0].companyId === '9229539' && rep.rows[0].company === 'Absolute Home Mortgage Corp.' && rep.rows[1].role === 'MVA' && rep.rows[0].email === 'e@ahm.example');
   ok('the old Name, Email, Company, Role paste still works', readVoterRows('Jane Smith\tj@x.example\tX Bank\tMVR').rows[0].role === 'MVR');
   /* the audit trail */
   S.voteflags.d4v = { status: 'excluded', by: 'Jonna', at: '2026-11-03T15:00:00.000Z', reason: 'Another ballot from this link' };
