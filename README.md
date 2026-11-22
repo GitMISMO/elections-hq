@@ -44,6 +44,6 @@ Vice Chair or Co-Chairs into Meeting Trackers' Workgroup Leadership (file `leade
 the results needs Meeting Trackers access too; anything that couldn't be sent waits in `mtpush`
 and can be re-sent from the results panel.
 
-Emails are drafted into `data/outbox.json` by the page and sent by the "Elections Outbox" flow from
+Emails are drafted into `data/outbox.json` by the page and sent by the "Leadership HQ Outbox" flow from
 elections@mba.org, which records each send in `data/outsent.json`. Nominee answers arrive in
 `data/responses.json`. See GO-LIVE.md.
