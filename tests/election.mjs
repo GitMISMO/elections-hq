@@ -82,6 +82,12 @@ const r = await p.evaluate(async () => {
   const vr = await applyVoterPull(true);
   const keep = S.voters.keep;
   ok('the Aptify list adds, updates and sets aside, keeping links and hand-added people', vr && vr.added === 1 && vr.updated === 1 && vr.removed === 1 && keep.code === 'KCODE' && keep.role === 'MVR' && keep.company === 'Z Bank' && !!S.voters.h && !S.voters.old && vals('voters').some(v => v.email === 'new@w.example' && v.code));
+  /* Business Domain results go to MBA Legal */
+  S.settings.automation = { legal: { name: 'Justin Wiseman', email: 'legal@x.example' } };
+  const dc = { id: 'dt', type: 'domain', year: 2027, closeTime: '17:00', dates: { ballotOpen: '2026-12-14', ballotClose: '2026-12-18', audit: '2026-12-21', certDue: '2026-12-22', announce: '2026-12-23' } };
+  const hd = draftsFor(dc, RULES.find(r => r[0] === 'legalHeads' && r[1] === 'domain'))[0];
+  const cd = draftsFor(dc, RULES.find(r => r[0] === 'certify' && r[1] === 'domain'));
+  ok('Business Domain results have a heads-up and a request to certify for MBA Legal', hd && hd.to[0].email === 'legal@x.example' && /^Hi Justin/.test(hd.body) && /5 p\.m\. Eastern/.test(hd.body) && /December 21/.test(hd.body) && /December 22/.test(hd.body) && cd.length === 1 && /Business Domain/.test(cd[0].subject));
   /* past elections, read-only */
   S.archive = { 'archive/2024-domain': { id: '2024-domain', cycle: '2024-domain', type: 'domain', year: 2024, final: true, finalBy: 'Jonna', dates: { results: '2023-12-07' }, results: [{ seat: 'Data · Chair', count: 1, elected: [{ name: 'Ann Lee', company: 'Bank A' }] }], counts: { votes: 3 }, file: 'arch-2024-domain', archivedAt: '2026-01-15T15:23:00Z' } };
   renderPast(); ok('past elections list what was archived', /2024/.test(document.querySelector('#page-past').textContent) && /3/.test(document.querySelector('#page-past').textContent));

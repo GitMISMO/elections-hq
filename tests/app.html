@@ -1087,7 +1087,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 </aside>
 <div class="toast" id="toast" hidden></div>
 <script>
-const BUILD={at:"2026-11-22T18:23:04Z",fp:"f432b862"};
+const BUILD={at:"2026-11-22T19:16:27Z",fp:"3ceca510"};
 
 /* ================= the public forms (shared by Leadership HQ and the website copies) =================
    EF.nominate(el, {elections, submit, onDone})   elections: [{cycle, type, name, open, closes, groups:[{name, positions:[{seat, position}]}], seats:[{seat, position}], boardSeats}]
@@ -1264,6 +1264,8 @@ const MILES = {
     ["ballotOpen","Ballots Out","A personal link to every MVR and MVA"],
     ["dupCheck","Reminder to Vote","MVRs and MVAs whose company hasn't voted"],
     ["ballotClose","Voting Closes",""],
+    ["audit","Results to Legal","The results go to MBA Legal (Justin Wiseman), the third party, to certify"],
+    ["certDue","Certification Back","MBA Legal confirms the election was fair"],
     ["announce","Results Announced","Domain Chairs form the Council of Chairs"],
     ["orient","Orientation","New domain leaders"],
     ["termStart","Terms Begin",""]
@@ -1802,7 +1804,7 @@ function wireResults(el,c){
   const f=$("#rs-final",el); if(f) f.onclick=async()=>{ const why=finalProblems(c); if(why.length){ toast("Not yet: "+why.join(" "),9000); return; } if(f.dataset.sure){ await markFinal(c); } else { f.dataset.sure="1"; f.textContent="Press Again: Lock the Winners"; setTimeout(()=>{ delete f.dataset.sure; f.textContent="Mark Results Final"; },3500); } };
   const a=$("#rs-apply",el); if(a) a.onclick=()=>applyResults(c);
   const cs=$("#rs-csv",el); if(cs) cs.onclick=()=>downloadCount(c);
-  const au=$("#rs-audit",el); if(au) au.onclick=()=>{ const x=c.audit||{}; openPane({eye:"Governance Committee", title:"Audit of the Count", data:{by:x.by||"Michael Briggs", sent:x.sent||"", back:x.back||"", notes:x.notes||""}, fields:[{k:"by",label:"Audited By"},{k:"sent",label:"Sent",type:"date"},{k:"back",label:"Returned",type:"date"},{k:"notes",label:"Notes",type:"textarea",rows:3}], save:async v=>patch("cycles",c.id,{audit:v})}); };
+  const au=$("#rs-audit",el); if(au) au.onclick=()=>{ const x=c.audit||{}; openPane({eye:"Governance Committee", title:"Audit of the Count", data:{by:x.by||LEGAL().name||"", sent:x.sent||"", back:x.back||"", notes:x.notes||""}, fields:[{k:"by",label:"Audited By"},{k:"sent",label:"Sent",type:"date"},{k:"back",label:"Returned",type:"date"},{k:"notes",label:"Notes",type:"textarea",rows:3}], save:async v=>patch("cycles",c.id,{audit:v})}); };
   $$("[data-win]",el).forEach(b=>b.onclick=()=>openWinner(c,S.seats[b.dataset.win]));
 }
 function openWinner(c,s){
@@ -4432,6 +4434,19 @@ healthChecks = function(){ const out=_healthVP(); const p=S.voterpull.main;
   else { const age=(Date.now()-Date.parse(p.receivedAt))/864e5; out.push([age>9?"warn":"ok","Voter list from Aptify","Last received "+whenET(p.receivedAt)+" ("+plural(p.count||0,"person","people")+")"+(age>9?". It's more than a week old: check the Monday report email and the flow Leadership HQ - Aptify Voting Reps.":"."),"voters"]); }
   return out; };
 
+/* ======================= BUSINESS DOMAIN RESULTS CERTIFIED BY MBA LEGAL (November 22, 2026) =======================
+   Jonna: Justin Wiseman (MBA Legal, replaced Michael Briggs) certifies the Business Domain results.
+   A heads-up when the Call for Vote goes out, and the Request to Certify on the audit date (built from
+   the count, with the ballot breakdown and results attached). Both are drafts from Jonna's address;
+   nothing goes until she presses Send. */
+COMMS.domain.push(
+  ["legalHeads","Heads-Up to MBA Legal","ballotOpen","MBA Legal (certifies the results)","MISMO Call for Vote: Business Domain Leaders, Upcoming Certification Request",
+"Hi {{legalFirst}},\n\nI hope you're doing well! A quick heads-up that MISMO's Call for Vote for its {{year}} Business Domain leaders (a Chair and a Vice Chair for each of eight domains) went out today, and voting closes at midnight Eastern on {{ballotClose}}.\n\nI'll send you the election results to certify on {{audit}}, and would be grateful to have them back by close of business {{certDue}}. Please let me know if that works with your schedule.\n\nThank you!\n\n{{signature}}"],
+  ["certify","Request to Certify the Results","audit","MBA Legal (certifies the results)","Request to Certify MISMO {{body}} Election Results",
+"Built from the count when it's drafted: the process with its dates, the ballots received, any company that voted twice and which ballot counted, any tie and how it was settled, and every seat's elected and not elected nominees, with the ballot breakdown and the count attached."]);
+RULES.push(["legalHeads","domain","Heads-Up to MBA Legal","ballotOpen","ask","MBA Legal, who certifies the results"]);
+RULES.push(["certify","domain","Request to Certify the Results","audit","ask","MBA Legal, who certifies the results (the count is attached)"]);
+
 /* ================= Start the next election year ================= */
 function openStartYear(){
   const ys=years(); const next=(vals("cycles").length? Math.max(...ys)+1 : today().getFullYear()+1);
@@ -4496,7 +4511,7 @@ const HELP=[
   ["Automation","Nominee confirmations",'<p>When a nomination is accepted, the nominee gets an email with a personal link to say yes or no. Their answer is logged and the nominee moves to On the Ballot, or to Not Going Ahead, with nothing for you to do. Open a nominee and press <b>Nominee\'s Confirmation</b> to see what they see.</p>'],
   ["Nominations","How a nomination comes in",'<ol><li>Someone fills in the public nomination form.</li><li>It lands in From the Form on Nominations, flagged if it looks like spam or is already there.</li><li>Drag it to To Confirm (or press Accept). The nominee is emailed to confirm.</li><li>When they say yes, it moves to On the Ballot.</li></ol><p>Nominees must work for a MISMO member company (Bylaws, Article IV).</p>'],
   ["Voting","One company, one vote",'<p>When a company sends more than one ballot for the same group, those ballots are held. The one-company email goes to them; when they answer, press <b>Count This One</b> on the ballot that stands. For the Governance Committee, if both the MVR and the MVA vote, the Alternate\'s ballot is dismissed.</p><p>Ballots emailed to elections@mismo.org go in with <b>+ Ballot Sent by Email</b> on Ballots and Results.</p>'],
-  ["Results","Certifying the results with MBA Legal",'<p>MBA Legal, as a third party, confirms an election was fair. The Governance Committee is now appointed, so its certification emails are switched off; the same request can be drafted for any elected results from the <b>Certification</b> button on those results.</p><ol><li>When the Call for Vote goes out, a <b>Heads-Up to MBA Legal</b> is drafted with the dates.</li><li>On the audit date, the <b>Request to Certify</b> is drafted from the count: the process with its dates, the ballots received, any company that voted twice and which ballot counted, any tie and how it was settled, and every seat\'s elected and not elected nominees. The ballot breakdown and the count are attached.</li><li>Press <b>Certification</b> on the results to see it, draft it again after settling ballots, and record when it comes back.</li></ol><p>Who certifies (Michael Briggs is leaving) is set in Outbox, Addresses; leave it blank until it\'s decided, and the drafts wait in Needs Attention. These come from your address.</p>'],
+  ["Results","Certifying the results with MBA Legal",'<p>MBA Legal, as a third party, confirms an election was fair. Justin Wiseman at MBA Legal certifies the <b>Business Domain</b> results (decided November 22, 2026). The Governance Committee is now appointed, so it has none; the same request can be drafted for any other elected results from the <b>Certification</b> button on those results.</p><ol><li>When the Call for Vote goes out, a <b>Heads-Up to MBA Legal</b> is drafted with the dates.</li><li>On the audit date, the <b>Request to Certify</b> is drafted from the count: the process with its dates, the ballots received, any company that voted twice and which ballot counted, any tie and how it was settled, and every seat\'s elected and not elected nominees. The ballot breakdown and the count are attached.</li><li>Press <b>Certification</b> on the results to see it, draft it again after settling ballots, and record when it comes back.</li></ol><p>Who certifies is set in Outbox, Addresses: Justin Wiseman at MBA Legal (he replaced Michael Briggs in November 2026). If it\'s ever blank, the drafts wait in Needs Attention. These come from your address.</p>'],
   ["Results","Final results and the roster",'<ol><li>Settle every ballot on hold.</li><li>For the Governance Committee, send the Request to Certify and record it when it\'s back.</li><li>Press <b>Mark Results Final</b>. The elected and thank-you emails are drafted.</li><li>Press <b>Apply to the Roster</b>. New leaders are added, outgoing leaders move to Former, everyone new appears on Onboarding, Domain Chairs appear on the Council of Chairs, and the new leaders are written into Meeting Trackers.</li></ol>'],
   ["Board","How the Board slate works",'<p>Board members aren\'t voted on by members. The Nominating Committee recommends the slate and MBA\'s President and CEO elects the Board. The Board page keeps the slate: who\'s leaving, who\'s joining, extensions, committee roles (including the Prioritization Committee) and officers. The names go to MBA at least 30 days before year end (by December 1); Leadership HQ flags it if that date is later.</p><p>On the <b>Seat Map</b>, drag a member onto <b>Leaving December 31</b> to put them on the slate as leaving (it needs approval like any slate item). Drag them back into a category to keep them: the leaving item is set aside, and if their term has run out an extension opens, filled in, for you to set the new term end. Drag a member or a joining member to another category to change their seat.</p>']
 ].concat(Object.keys(BYLAWS).map(k=>["The Bylaws", BYLAWS[k].t, '<ul>'+BYLAWS[k].pts.map(p=>'<li>'+esc(p)+'</li>').join("")+'</ul><p class="note">'+esc(BYLAWS[k].cite)+'. Bylaws of the Mortgage Industry Standards Maintenance Organization, Inc., as amended January 20, 2022. A plain-words summary; the Bylaws themselves govern.</p>']));
