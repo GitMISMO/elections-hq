@@ -2,6 +2,9 @@
 
 One line per change people would notice. Newest first.
 
+## November 25, 2026
+- Browser tab icon now matches mismo.org (the shared icon at resources.mismo.org/assets/favicon-48x48.png).
+
 ## November 22, 2026
 - Leadership HQ moved to GitMISMO/leadership-hq (resources.mismo.org/leadership-hq/). This repository now only forwards the old address and keeps slates/ for the public forms. See that repository's CHANGELOG for everything after this.
 - Business Domain results are certified by MBA Legal (Justin Wiseman): a Heads-Up when the Call for Vote goes out and a Request to Certify on the audit date, both drafts until Jonna presses Send. New dates on the domain election: Results to Legal and Certification Back.
